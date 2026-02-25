@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class CustomerLandingPage extends StatelessWidget {
   const CustomerLandingPage({super.key});
@@ -135,28 +136,29 @@ class CustomerLandingPage extends StatelessWidget {
                     children: [
                       Text(
                         'Qless',
-                        style: TextStyle(
+                        style: GoogleFonts.righteous(
                           fontSize: titleSize,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w400,
                           color: Colors.white,
-                          letterSpacing: 2,
+                          letterSpacing: 3,
                         ),
                       ),
                       const SizedBox(height: 12),
                       Text(
                         'Skip the Line, Enjoy the Food',
-                        style: TextStyle(
+                        style: GoogleFonts.poppins(
                           fontSize: taglineSize,
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withOpacity(0.95),
                           fontWeight: FontWeight.w300,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Order from your favorite street food vendors with zero wait time',
-                        style: TextStyle(
+                        style: GoogleFonts.inter(
                           fontSize: 16,
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withOpacity(0.85),
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                       const SizedBox(height: 32),
@@ -214,11 +216,11 @@ class CustomerLandingPage extends StatelessWidget {
                 // App Name
                 Text(
                   'Qless',
-                  style: TextStyle(
+                  style: GoogleFonts.righteous(
                     fontSize: titleSize,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w400,
                     color: Colors.white,
-                    letterSpacing: 2,
+                    letterSpacing: 3,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -227,9 +229,9 @@ class CustomerLandingPage extends StatelessWidget {
                 Text(
                   'Skip the Line, Enjoy the Food',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     fontSize: taglineSize,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withOpacity(0.95),
                     fontWeight: FontWeight.w300,
                   ),
                 ),
@@ -325,18 +327,19 @@ class CustomerLandingPage extends StatelessWidget {
         children: [
           Text(
             'Popular Food Outlets',
-            style: TextStyle(
+            style: GoogleFonts.poppins(
               fontSize: isWideScreen ? 32 : 26,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
               color: Colors.black87,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Discover delicious street food near you',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               fontSize: isWideScreen ? 18 : 15,
               color: Colors.grey.shade600,
+              fontWeight: FontWeight.w400,
             ),
           ),
           SizedBox(height: isWideScreen ? 32 : 24),
@@ -545,9 +548,9 @@ class CustomerLandingPage extends StatelessWidget {
         children: [
           Text(
             'Why Choose Qless?',
-            style: TextStyle(
+            style: GoogleFonts.poppins(
               fontSize: isWideScreen ? 32 : 26,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
               color: Colors.black87,
             ),
           ),
@@ -555,9 +558,10 @@ class CustomerLandingPage extends StatelessWidget {
           Text(
             'Your favorite street food, without the hassle',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: GoogleFonts.inter(
               fontSize: isWideScreen ? 18 : 15,
               color: Colors.grey.shade600,
+              fontWeight: FontWeight.w400,
             ),
           ),
           SizedBox(height: isWideScreen ? 40 : 28),
@@ -625,7 +629,7 @@ class CustomerLandingPage extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: GoogleFonts.poppins(
               fontSize: isWideScreen ? 18 : 14,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
@@ -635,7 +639,7 @@ class CustomerLandingPage extends StatelessWidget {
           Text(
             description,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: GoogleFonts.inter(
               fontSize: isWideScreen ? 14 : 12,
               color: Colors.grey.shade600,
               height: 1.3,
@@ -680,7 +684,7 @@ class CustomerLandingPage extends StatelessWidget {
         children: [
           Text(
             'How It Works',
-            style: TextStyle(
+            style: GoogleFonts.poppins(
               fontSize: isWideScreen ? 32 : 26,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
@@ -689,7 +693,7 @@ class CustomerLandingPage extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Simple steps to delicious food',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               fontSize: isWideScreen ? 18 : 15,
               color: Colors.grey.shade600,
             ),
@@ -768,7 +772,7 @@ class CustomerLandingPage extends StatelessWidget {
               child: Center(
                 child: Text(
                   number,
-                  style: const TextStyle(
+                  style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -803,7 +807,7 @@ class CustomerLandingPage extends StatelessWidget {
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
@@ -813,7 +817,7 @@ class CustomerLandingPage extends StatelessWidget {
               Text(
                 description,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: GoogleFonts.inter(
                   fontSize: 13,
                   color: Colors.grey.shade600,
                 ),
