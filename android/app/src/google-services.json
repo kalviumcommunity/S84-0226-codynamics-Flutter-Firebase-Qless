@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "535691427720",
+    "project_id": "qless-806c1",
+    "storage_bucket": "qless-806c1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:535691427720:android:885f2fc3fed1384c08843d",
+        "android_client_info": {
+          "package_name": "com.example.qless"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQuD9Gvglethyzw0gBubyr-03-sjqseXw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

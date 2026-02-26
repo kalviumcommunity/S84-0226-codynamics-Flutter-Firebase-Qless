@@ -1,17 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
+import 'screens/auth/auth_screen.dart';
 import 'screens/customer/customer_landing_page.dart';
 import 'screens/splash/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await dotenv.load(fileName: ".env");
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+  } catch (e) {
+    // Firebase app already initialized, which can happen during hot reload
+    if (!e.toString().contains('duplicate-app')) {
+      rethrow;
+    }
+  }
+
   runApp(const QlessApp());
 }
 
@@ -141,7 +155,31 @@ class _AppEntryState extends State<AppEntry> {
     if (_showSplash) {
       return SplashScreen(onComplete: _onSplashComplete);
     }
-    return const CustomerLandingPage();
+
+    // Listen to Firebase Auth state to decide which screen to show
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        // While checking auth state, show a loading indicator
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        // If user is signed in, go to the main app
+        if (snapshot.hasData && snapshot.data != null) {
+          return const CustomerLandingPage();
+        }
+
+        // Otherwise, show the auth screen
+        return AuthScreen(
+          onAuthSuccess: () {
+            // StreamBuilder will automatically rebuild when auth state changes
+          },
+        );
+      },
+    );
   }
 }
 
