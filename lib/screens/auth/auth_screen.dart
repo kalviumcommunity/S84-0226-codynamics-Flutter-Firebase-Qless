@@ -18,7 +18,7 @@ class _AuthScreenState extends State<AuthScreen>
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  bool _isLogin = true;
+  final bool _isLogin = true;
   bool _isLoading = false;
   bool _obscurePassword = true;
   String? _errorMessage;
@@ -65,23 +65,16 @@ class _AuthScreenState extends State<AuthScreen>
     });
 
     try {
-      if (_isLogin) {
-        await _auth.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
-      } else {
-        await _auth.createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
-      }
+      await _auth.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              _isLogin ? 'Login Successful!' : 'Signup Successful!',
+              'Login Successful!',
               style: GoogleFonts.poppins(),
             ),
             backgroundColor: Colors.green,
@@ -94,6 +87,8 @@ class _AuthScreenState extends State<AuthScreen>
         widget.onAuthSuccess();
       }
     } on FirebaseAuthException catch (e) {
+
+
       setState(() {
         _errorMessage = _getReadableError(e.code);
       });
@@ -132,13 +127,14 @@ class _AuthScreenState extends State<AuthScreen>
   }
 
   void _toggleAuthMode() {
-    setState(() {
-      _isLogin = !_isLogin;
-      _errorMessage = null;
-    });
-    _animController.reset();
-    _animController.forward();
+    // setState(() {
+    //   _isLogin = !_isLogin;
+    //   _errorMessage = null;
+    // });
+    // _animController.reset();
+    // _animController.forward();
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -196,7 +192,7 @@ class _AuthScreenState extends State<AuthScreen>
                             children: [
                               // Title
                               Text(
-                                _isLogin ? 'Welcome Back' : 'Create Account',
+                                'Vendor Login',
                                 style: GoogleFonts.poppins(
                                   fontSize: 26,
                                   fontWeight: FontWeight.bold,
@@ -206,9 +202,7 @@ class _AuthScreenState extends State<AuthScreen>
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                _isLogin
-                                    ? 'Sign in to manage your vendor dashboard'
-                                    : 'Register to start managing your stall',
+                                'Sign in to manage your vendor dashboard',
                                 style: GoogleFonts.inter(
                                   fontSize: 14,
                                   color: Colors.grey[600],
@@ -328,7 +322,7 @@ class _AuthScreenState extends State<AuthScreen>
                                           ),
                                         )
                                       : Text(
-                                          _isLogin ? 'Sign In' : 'Sign Up',
+                                          'Sign In',
                                           style: GoogleFonts.poppins(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
@@ -338,32 +332,7 @@ class _AuthScreenState extends State<AuthScreen>
                               ),
                               const SizedBox(height: 16),
 
-                              // Toggle mode
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    _isLogin
-                                        ? "Don't have an account? "
-                                        : 'Already have an account? ',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 13,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                  GestureDetector(
-                                    onTap: _toggleAuthMode,
-                                    child: Text(
-                                      _isLogin ? 'Sign Up' : 'Sign In',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                        color: const Color(0xFFFF6B35),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              // Toggle mode removed for admin login only
                             ],
                           ),
                         ),
@@ -373,6 +342,7 @@ class _AuthScreenState extends State<AuthScreen>
                   ),
                 ),
               ),
+
             ),
           ),
         ),

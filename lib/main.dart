@@ -7,9 +7,11 @@ import 'firebase_options.dart';
 import 'screens/auth/auth_screen.dart';
 import 'screens/customer/customer_landing_page.dart';
 import 'screens/splash/splash_screen.dart';
+import 'screens/admin/admin_dashboard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
 
   await dotenv.load(fileName: ".env");
 
@@ -155,31 +157,10 @@ class _AppEntryState extends State<AppEntry> {
     if (_showSplash) {
       return SplashScreen(onComplete: _onSplashComplete);
     }
-
-    // Listen to Firebase Auth state to decide which screen to show
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        // While checking auth state, show a loading indicator
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        // If user is signed in, go to the main app
-        if (snapshot.hasData && snapshot.data != null) {
-          return const CustomerLandingPage();
-        }
-
-        // Otherwise, show the auth screen
-        return AuthScreen(
-          onAuthSuccess: () {
-            // StreamBuilder will automatically rebuild when auth state changes
-          },
-        );
-      },
-    );
+    
+    // Default to the customer landing page.
+    // Admin login will be a button on the customer page or a long press.
+    return const CustomerLandingPage();
   }
 }
 
