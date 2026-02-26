@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:qless/screens/auth/auth_screen.dart';
+import 'package:qless/screens/admin/admin_dashboard.dart';
 
 class CustomerLandingPage extends StatelessWidget {
   const CustomerLandingPage({super.key});
@@ -71,6 +74,36 @@ class CustomerLandingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // Check if already logged in
+          if (FirebaseAuth.instance.currentUser != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AdminDashboard()),
+            );
+          } else {
+            // Not logged in, go to Auth Screen
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AuthScreen(
+                  onAuthSuccess: () {
+                    // After successful login, replace with Admin Dashboard
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const AdminDashboard()),
+                    );
+                  },
+                ),
+              ),
+            );
+          }
+        },
+        child: const Icon(Icons.admin_panel_settings),
+        tooltip: 'Admin Login',
+      ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -102,6 +135,7 @@ class CustomerLandingPage extends StatelessWidget {
       ),
     );
   }
+
 
   Widget _buildHeroSection(BuildContext context, bool isWideScreen, bool isDesktop) {
     final screenWidth = MediaQuery.of(context).size.width;
