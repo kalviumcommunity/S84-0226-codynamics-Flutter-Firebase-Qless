@@ -1,76 +1,65 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:qless/screens/auth/auth_screen.dart';
+import 'package:qless/screens/admin/admin_dashboard.dart';
+import 'package:qless/screens/responsive_home.dart';
 
 class CustomerLandingPage extends StatelessWidget {
   const CustomerLandingPage({super.key});
 
-  // Sample food outlets data
-  static final List<Map<String, dynamic>> _foodOutlets = [
-    {
-      'name': 'Sharma Ji Chaat Corner',
-      'cuisine': 'North Indian Street Food',
-      'rating': 4.8,
-      'time': '10-15 min',
-      'icon': Icons.restaurant,
-      'color': Colors.orange,
-      'speciality': 'Pani Puri, Aloo Tikki',
-      'isOpen': true,
-    },
-    {
-      'name': 'Dragon Wok Express',
-      'cuisine': 'Chinese & Indo-Chinese',
-      'rating': 4.5,
-      'time': '15-20 min',
-      'icon': Icons.ramen_dining,
-      'color': Colors.red,
-      'speciality': 'Manchurian, Chowmein',
-      'isOpen': true,
-    },
-    {
-      'name': 'South Spice Kitchen',
-      'cuisine': 'South Indian',
-      'rating': 4.7,
-      'time': '12-18 min',
-      'icon': Icons.breakfast_dining,
-      'color': Colors.green,
-      'speciality': 'Dosa, Idli, Vada',
-      'isOpen': true,
-    },
-    {
-      'name': 'Burger Barn',
-      'cuisine': 'American Fast Food',
-      'rating': 4.3,
-      'time': '8-12 min',
-      'icon': Icons.lunch_dining,
-      'color': Colors.amber,
-      'speciality': 'Burgers, Fries',
-      'isOpen': false,
-    },
-    {
-      'name': 'Tandoori Nights',
-      'cuisine': 'Mughlai & Kebabs',
-      'rating': 4.6,
-      'time': '20-25 min',
-      'icon': Icons.local_fire_department,
-      'color': Colors.deepOrange,
-      'speciality': 'Seekh Kebab, Biryani',
-      'isOpen': true,
-    },
-    {
-      'name': 'Sweet Tooth Desserts',
-      'cuisine': 'Desserts & Sweets',
-      'rating': 4.9,
-      'time': '5-10 min',
-      'icon': Icons.icecream,
-      'color': Colors.pink,
-      'speciality': 'Gulab Jamun, Ice Cream',
-      'isOpen': true,
-    },
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton.small(
+            heroTag: 'responsive_demo',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ResponsiveHome()),
+              );
+            },
+            child: const Icon(Icons.aspect_ratio),
+            tooltip: 'Show Responsive Demo',
+          ),
+          const SizedBox(height: 16),
+          FloatingActionButton(
+            heroTag: 'admin_login',
+            onPressed: () {
+              // Check if already logged in
+              if (FirebaseAuth.instance.currentUser != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdminDashboard()),
+                );
+              } else {
+                // Not logged in, go to Auth Screen
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AuthScreen(
+                      onAuthSuccess: () {
+                        // After successful login, replace with Admin Dashboard
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const AdminDashboard()),
+                        );
+                      },
+                    ),
+                  ),
+                );
+              }
+            },
+            child: const Icon(Icons.admin_panel_settings),
+            tooltip: 'Admin Login',
+          ),
+        ],
+      ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -102,6 +91,7 @@ class CustomerLandingPage extends StatelessWidget {
       ),
     );
   }
+
 
   Widget _buildHeroSection(BuildContext context, bool isWideScreen, bool isDesktop) {
     final screenWidth = MediaQuery.of(context).size.width;

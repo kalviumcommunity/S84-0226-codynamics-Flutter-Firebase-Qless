@@ -1,17 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
+import 'screens/auth/auth_screen.dart';
 import 'screens/customer/customer_landing_page.dart';
 import 'screens/splash/splash_screen.dart';
+import 'screens/admin/admin_dashboard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+
   await dotenv.load(fileName: ".env");
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+  } catch (e) {
+    // Firebase app already initialized, which can happen during hot reload
+    if (!e.toString().contains('duplicate-app')) {
+      rethrow;
+    }
+  }
+
   runApp(const QlessApp());
 }
 
@@ -141,6 +157,9 @@ class _AppEntryState extends State<AppEntry> {
     if (_showSplash) {
       return SplashScreen(onComplete: _onSplashComplete);
     }
+    
+    // Default to the customer landing page.
+    // Admin login will be a button on the customer page or a long press.
     return const CustomerLandingPage();
   }
 }
