@@ -8,6 +8,69 @@ import 'package:qless/screens/responsive_home.dart';
 class CustomerLandingPage extends StatelessWidget {
   const CustomerLandingPage({super.key});
 
+  static final List<Map<String, dynamic>> _foodOutlets = [
+    {
+      'name': 'Spice Garden',
+      'cuisine': 'Indian',
+      'speciality': 'Biryani & Curries',
+      'rating': 4.5,
+      'time': '20-30 min',
+      'icon': Icons.restaurant,
+      'color': Colors.orange,
+      'isOpen': true,
+    },
+    {
+      'name': 'Dragon Wok',
+      'cuisine': 'Chinese',
+      'speciality': 'Noodles & Manchurian',
+      'rating': 4.2,
+      'time': '15-25 min',
+      'icon': Icons.ramen_dining,
+      'color': Colors.red,
+      'isOpen': true,
+    },
+    {
+      'name': 'Burger Barn',
+      'cuisine': 'American',
+      'speciality': 'Burgers & Fries',
+      'rating': 4.7,
+      'time': '10-15 min',
+      'icon': Icons.lunch_dining,
+      'color': Colors.amber,
+      'isOpen': true,
+    },
+    {
+      'name': 'Chai & Snacks',
+      'cuisine': 'Street Food',
+      'speciality': 'Tea & Samosa',
+      'rating': 4.0,
+      'time': '5-10 min',
+      'icon': Icons.local_cafe,
+      'color': Colors.brown,
+      'isOpen': true,
+    },
+    {
+      'name': 'Pizza Planet',
+      'cuisine': 'Italian',
+      'speciality': 'Pizzas & Pasta',
+      'rating': 4.6,
+      'time': '25-35 min',
+      'icon': Icons.local_pizza,
+      'color': Colors.green,
+      'isOpen': false,
+    },
+    {
+      'name': 'Juice Junction',
+      'cuisine': 'Beverages',
+      'speciality': 'Fresh Juices & Shakes',
+      'rating': 4.3,
+      'time': '5-10 min',
+      'icon': Icons.local_drink,
+      'color': Colors.teal,
+      'isOpen': true,
+    },
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
