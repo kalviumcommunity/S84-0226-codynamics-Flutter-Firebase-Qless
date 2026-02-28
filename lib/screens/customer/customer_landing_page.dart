@@ -79,6 +79,17 @@ class CustomerLandingPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           FloatingActionButton.small(
+            heroTag: 'logout_btn',
+            backgroundColor: Colors.redAccent,
+            foregroundColor: Colors.white,
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+            },
+            child: const Icon(Icons.logout),
+            tooltip: 'Logout',
+          ),
+          const SizedBox(height: 16),
+          FloatingActionButton.small(
             heroTag: 'responsive_demo',
             onPressed: () {
               Navigator.push(
@@ -97,7 +108,9 @@ class CustomerLandingPage extends StatelessWidget {
               if (FirebaseAuth.instance.currentUser != null) {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const AdminDashboard()),
+                  MaterialPageRoute(
+                    builder: (context) => const AdminDashboard(),
+                  ),
                 );
               } else {
                 // Not logged in, go to Auth Screen
@@ -110,7 +123,8 @@ class CustomerLandingPage extends StatelessWidget {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const AdminDashboard()),
+                            builder: (context) => const AdminDashboard(),
+                          ),
                         );
                       },
                     ),
@@ -128,22 +142,22 @@ class CustomerLandingPage extends StatelessWidget {
           builder: (context, constraints) {
             final isWideScreen = constraints.maxWidth > 600;
             final isDesktop = constraints.maxWidth > 900;
-            
+
             return SingleChildScrollView(
               child: Column(
                 children: [
                   // Hero Section
                   _buildHeroSection(context, isWideScreen, isDesktop),
-                  
+
                   // Food Outlets Section
                   _buildFoodOutletsSection(context, isWideScreen, isDesktop),
-                  
+
                   // Features Section
                   _buildFeaturesSection(context, isWideScreen, isDesktop),
-                  
+
                   // How It Works Section
                   _buildHowItWorksSection(context, isWideScreen, isDesktop),
-                  
+
                   // CTA Section
                   _buildCTASection(context, isWideScreen),
                 ],
@@ -155,13 +169,16 @@ class CustomerLandingPage extends StatelessWidget {
     );
   }
 
-
-  Widget _buildHeroSection(BuildContext context, bool isWideScreen, bool isDesktop) {
+  Widget _buildHeroSection(
+    BuildContext context,
+    bool isWideScreen,
+    bool isDesktop,
+  ) {
     final screenWidth = MediaQuery.of(context).size.width;
     final logoSize = isDesktop ? 80.0 : (isWideScreen ? 70.0 : 60.0);
     final titleSize = isDesktop ? 56.0 : (isWideScreen ? 52.0 : 42.0);
     final taglineSize = isDesktop ? 22.0 : (isWideScreen ? 20.0 : 16.0);
-    
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
@@ -172,10 +189,7 @@ class CustomerLandingPage extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Colors.orange.shade400,
-            Colors.deepOrange.shade600,
-          ],
+          colors: [Colors.orange.shade400, Colors.deepOrange.shade600],
         ),
       ),
       child: isDesktop
@@ -265,7 +279,7 @@ class CustomerLandingPage extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: isWideScreen ? 28 : 20),
-                
+
                 // App Name
                 Text(
                   'Qless',
@@ -277,7 +291,7 @@ class CustomerLandingPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                
+
                 // Tagline
                 Text(
                   'Skip the Line, Enjoy the Food',
@@ -289,7 +303,7 @@ class CustomerLandingPage extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: isWideScreen ? 32 : 24),
-                
+
                 _buildHeroButtons(context, isWideScreen),
               ],
             ),
@@ -334,7 +348,7 @@ class CustomerLandingPage extends StatelessWidget {
             ],
           ),
         ),
-        
+
         // Track Order Button
         OutlinedButton(
           onPressed: () {
@@ -370,10 +384,14 @@ class CustomerLandingPage extends StatelessWidget {
     );
   }
 
-  Widget _buildFoodOutletsSection(BuildContext context, bool isWideScreen, bool isDesktop) {
+  Widget _buildFoodOutletsSection(
+    BuildContext context,
+    bool isWideScreen,
+    bool isDesktop,
+  ) {
     final crossAxisCount = isDesktop ? 3 : (isWideScreen ? 2 : 1);
     final childAspectRatio = isDesktop ? 1.4 : (isWideScreen ? 1.5 : 2.2);
-    
+
     return Container(
       padding: EdgeInsets.all(isWideScreen ? 32 : 20),
       child: Column(
@@ -396,7 +414,7 @@ class CustomerLandingPage extends StatelessWidget {
             ),
           ),
           SizedBox(height: isWideScreen ? 32 : 24),
-          
+
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -417,21 +435,27 @@ class CustomerLandingPage extends StatelessWidget {
     );
   }
 
-  Widget _buildOutletCard(BuildContext context, Map<String, dynamic> outlet, bool isWideScreen) {
+  Widget _buildOutletCard(
+    BuildContext context,
+    Map<String, dynamic> outlet,
+    bool isWideScreen,
+  ) {
     final Color outletColor = outlet['color'] as Color;
     final bool isOpen = outlet['isOpen'] as bool;
-    
+
     return GestureDetector(
-      onTap: isOpen ? () {
-        // TODO: Navigate to outlet menu
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Opening ${outlet['name']}...'),
-            backgroundColor: outletColor,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      } : null,
+      onTap: isOpen
+          ? () {
+              // TODO: Navigate to outlet menu
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Opening ${outlet['name']}...'),
+                  backgroundColor: outletColor,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          : null,
       child: Container(
         padding: EdgeInsets.all(isWideScreen ? 20 : 16),
         decoration: BoxDecoration(
@@ -466,7 +490,7 @@ class CustomerLandingPage extends StatelessWidget {
                 ),
               ),
               SizedBox(width: isWideScreen ? 16 : 12),
-              
+
               // Outlet Details
               Expanded(
                 child: Column(
@@ -489,7 +513,10 @@ class CustomerLandingPage extends StatelessWidget {
                         ),
                         if (!isOpen)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.grey.shade400,
                               borderRadius: BorderRadius.circular(8),
@@ -527,7 +554,11 @@ class CustomerLandingPage extends StatelessWidget {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.star, size: 16, color: Colors.amber.shade600),
+                        Icon(
+                          Icons.star,
+                          size: 16,
+                          color: Colors.amber.shade600,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           '${outlet['rating']}',
@@ -538,7 +569,11 @@ class CustomerLandingPage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Icon(Icons.access_time, size: 14, color: Colors.grey.shade500),
+                        Icon(
+                          Icons.access_time,
+                          size: 14,
+                          color: Colors.grey.shade500,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           outlet['time'] as String,
@@ -552,7 +587,7 @@ class CustomerLandingPage extends StatelessWidget {
                   ],
                 ),
               ),
-              
+
               // Arrow
               if (isOpen)
                 Icon(
@@ -567,7 +602,11 @@ class CustomerLandingPage extends StatelessWidget {
     );
   }
 
-  Widget _buildFeaturesSection(BuildContext context, bool isWideScreen, bool isDesktop) {
+  Widget _buildFeaturesSection(
+    BuildContext context,
+    bool isWideScreen,
+    bool isDesktop,
+  ) {
     final features = [
       {
         'icon': Icons.speed,
@@ -703,7 +742,11 @@ class CustomerLandingPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHowItWorksSection(BuildContext context, bool isWideScreen, bool isDesktop) {
+  Widget _buildHowItWorksSection(
+    BuildContext context,
+    bool isWideScreen,
+    bool isDesktop,
+  ) {
     final steps = [
       {
         'number': '1',
@@ -752,7 +795,7 @@ class CustomerLandingPage extends StatelessWidget {
             ),
           ),
           SizedBox(height: isWideScreen ? 40 : 28),
-          
+
           if (isDesktop)
             // Horizontal layout for desktop
             Row(
@@ -803,10 +846,7 @@ class CustomerLandingPage extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Container(
-                height: 3,
-                color: Colors.orange.shade200,
-              ),
+              child: Container(height: 3, color: Colors.orange.shade200),
             ),
             Container(
               width: 56,
@@ -815,10 +855,7 @@ class CustomerLandingPage extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    Colors.orange.shade400,
-                    Colors.deepOrange.shade600,
-                  ],
+                  colors: [Colors.orange.shade400, Colors.deepOrange.shade600],
                 ),
                 shape: BoxShape.circle,
               ),
@@ -851,11 +888,7 @@ class CustomerLandingPage extends StatelessWidget {
           ),
           child: Column(
             children: [
-              Icon(
-                icon,
-                size: 32,
-                color: Colors.orange.shade600,
-              ),
+              Icon(icon, size: 32, color: Colors.orange.shade600),
               const SizedBox(height: 12),
               Text(
                 title,
@@ -902,10 +935,7 @@ class CustomerLandingPage extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    Colors.orange.shade400,
-                    Colors.deepOrange.shade600,
-                  ],
+                  colors: [Colors.orange.shade400, Colors.deepOrange.shade600],
                 ),
                 shape: BoxShape.circle,
               ),
@@ -931,7 +961,9 @@ class CustomerLandingPage extends StatelessWidget {
         SizedBox(width: isWideScreen ? 20 : 14),
         Expanded(
           child: Container(
-            margin: EdgeInsets.only(bottom: isLast ? 0 : (isWideScreen ? 28 : 20)),
+            margin: EdgeInsets.only(
+              bottom: isLast ? 0 : (isWideScreen ? 28 : 20),
+            ),
             padding: EdgeInsets.all(isWideScreen ? 18 : 14),
             decoration: BoxDecoration(
               color: Colors.grey.shade50,
@@ -1013,9 +1045,11 @@ class CustomerLandingPage extends StatelessWidget {
             ),
           ),
           SizedBox(height: isWideScreen ? 32 : 24),
-          
+
           ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: isWideScreen ? 500 : double.infinity),
+            constraints: BoxConstraints(
+              maxWidth: isWideScreen ? 500 : double.infinity,
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -1026,7 +1060,9 @@ class CustomerLandingPage extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.deepOrange,
                       foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: isWideScreen ? 18 : 14),
+                      padding: EdgeInsets.symmetric(
+                        vertical: isWideScreen ? 18 : 14,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -1056,11 +1092,16 @@ class CustomerLandingPage extends StatelessWidget {
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.deepOrange,
-                      padding: EdgeInsets.symmetric(vertical: isWideScreen ? 18 : 14),
+                      padding: EdgeInsets.symmetric(
+                        vertical: isWideScreen ? 18 : 14,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      side: const BorderSide(color: Colors.deepOrange, width: 2),
+                      side: const BorderSide(
+                        color: Colors.deepOrange,
+                        width: 2,
+                      ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -1082,7 +1123,7 @@ class CustomerLandingPage extends StatelessWidget {
             ),
           ),
           SizedBox(height: isWideScreen ? 40 : 28),
-          
+
           // Footer
           Text(
             '© 2026 Qless by Team codynamics',
@@ -1100,9 +1141,7 @@ class CustomerLandingPage extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
             Icon(Icons.confirmation_number, color: Colors.orange.shade600),
@@ -1135,7 +1174,10 @@ class CustomerLandingPage extends StatelessWidget {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.orange.shade600, width: 2),
+                  borderSide: BorderSide(
+                    color: Colors.orange.shade600,
+                    width: 2,
+                  ),
                 ),
               ),
             ),
