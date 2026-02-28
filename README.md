@@ -477,3 +477,46 @@ Developed with ❤️ by **Team codynamics**
 ---
 
 © 2025 Developed by **Team codynamics**
+
+## [Sprint-2] Persistent Login State (Auto-Login) � Team Qless
+
+### Overview
+This implementation handles user sessions and persistent login states cleanly using Firebase Authentication. It avoids forcing users to repeatedly log in across app restarts.
+
+### Auto-Login Flow
+1. **StreamBuilder**: main.dart listens to FirebaseAuth.instance.authStateChanges().
+2. **Loading**: Shows a circular progress indicator while determining the session's active state.
+3. **Logged In**: Routes securely to the CustomerLandingPage.
+4. **Logged Out**: Redirects seamlessly to the AuthScreen.
+5. **Sign Out**: Clearing the session updates the Stream, snapping the user back to the login screen.
+
+### Code Snippet
+`dart
+home: StreamBuilder<User?>(
+  stream: FirebaseAuth.instance.authStateChanges(),
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (snapshot.hasData) {
+      return const CustomerLandingPage();
+    }
+    return AuthScreen(
+      onAuthSuccess: () {},
+    );
+  },
+),
+``n
+### Screenshots
+*Provide the screenshots here:*
+- **Before restart**:
+- **After restart auto-login**:
+- **Logout behavior**:
+
+### Reflection
+- **Why persistent login is essential**: Greatly improves user experience and retention by eliminating the friction of repeatedly authenticating. Modern users expect an app to remember them.
+- **How Firebase makes session handling easier**: Firebase manages all underlying token handshakes, expiration, and refresh logic. uthStateChanges() provides a reactive, single source of truth for the entire app rather than relying on manual checks or SharedPreferences.
+- **Any issues faced while testing auto-login**: The primary challenge was properly integrating the stream with the existing splash screen flow, ensuring a seamless visual transition before showing the landing or auth page.
+

@@ -12,7 +12,6 @@ import 'screens/admin/admin_dashboard.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-
   await dotenv.load(fileName: ".env");
 
   try {
@@ -45,67 +44,60 @@ class QlessApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
         useMaterial3: true,
-        textTheme: GoogleFonts.poppinsTextTheme(
-          Theme.of(context).textTheme,
-        ).copyWith(
-          displayLarge: GoogleFonts.poppins(
-            fontWeight: FontWeight.bold,
-            fontSize: 57,
-          ),
-          displayMedium: GoogleFonts.poppins(
-            fontWeight: FontWeight.bold,
-            fontSize: 45,
-          ),
-          displaySmall: GoogleFonts.poppins(
-            fontWeight: FontWeight.bold,
-            fontSize: 36,
-          ),
-          headlineLarge: GoogleFonts.poppins(
-            fontWeight: FontWeight.w600,
-            fontSize: 32,
-          ),
-          headlineMedium: GoogleFonts.poppins(
-            fontWeight: FontWeight.w600,
-            fontSize: 28,
-          ),
-          headlineSmall: GoogleFonts.poppins(
-            fontWeight: FontWeight.w600,
-            fontSize: 24,
-          ),
-          titleLarge: GoogleFonts.poppins(
-            fontWeight: FontWeight.w600,
-            fontSize: 22,
-          ),
-          titleMedium: GoogleFonts.poppins(
-            fontWeight: FontWeight.w500,
-            fontSize: 16,
-          ),
-          titleSmall: GoogleFonts.poppins(
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-          ),
-          bodyLarge: GoogleFonts.inter(
-            fontSize: 16,
-          ),
-          bodyMedium: GoogleFonts.inter(
-            fontSize: 14,
-          ),
-          bodySmall: GoogleFonts.inter(
-            fontSize: 12,
-          ),
-          labelLarge: GoogleFonts.poppins(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
-          labelMedium: GoogleFonts.poppins(
-            fontWeight: FontWeight.w500,
-            fontSize: 12,
-          ),
-          labelSmall: GoogleFonts.poppins(
-            fontWeight: FontWeight.w500,
-            fontSize: 11,
-          ),
-        ),
+        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme)
+            .copyWith(
+              displayLarge: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 57,
+              ),
+              displayMedium: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 45,
+              ),
+              displaySmall: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 36,
+              ),
+              headlineLarge: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 32,
+              ),
+              headlineMedium: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 28,
+              ),
+              headlineSmall: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 24,
+              ),
+              titleLarge: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 22,
+              ),
+              titleMedium: GoogleFonts.poppins(
+                fontWeight: FontWeight.w500,
+                fontSize: 16,
+              ),
+              titleSmall: GoogleFonts.poppins(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+              bodyLarge: GoogleFonts.inter(fontSize: 16),
+              bodyMedium: GoogleFonts.inter(fontSize: 14),
+              bodySmall: GoogleFonts.inter(fontSize: 12),
+              labelLarge: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+              labelMedium: GoogleFonts.poppins(
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
+              ),
+              labelSmall: GoogleFonts.poppins(
+                fontWeight: FontWeight.w500,
+                fontSize: 11,
+              ),
+            ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             textStyle: GoogleFonts.poppins(
@@ -157,10 +149,26 @@ class _AppEntryState extends State<AppEntry> {
     if (_showSplash) {
       return SplashScreen(onComplete: _onSplashComplete);
     }
-    
-    // Default to the customer landing page.
-    // Admin login will be a button on the customer page or a long press.
-    return const CustomerLandingPage();
+
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.hasData) {
+          // User is logged in
+          return const CustomerLandingPage();
+        }
+        // User is not logged in
+        return AuthScreen(
+          onAuthSuccess: () {
+            // StreamBuilder automatically handles the navigation once Firebase auth state changes.
+          },
+        );
+      },
+    );
   }
 }
-
