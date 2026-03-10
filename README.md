@@ -18,6 +18,7 @@ Qless is a robust, real-time **Flutter + Firebase** application specifically des
 - [Service Layer](#-service-layer-repositories)
 - [State Management Strategy](#-state-management-strategy)
 - [UI Component Structure](#-ui-component-structure)
+- [Sprint-2 – Firestore Read Operations](#-sprint-2--firestore-read-operations)
 - [Critical Business Logic](#-critical-business-logic)
 - [Gradle & Android Build Setup](#-gradle--android-build-setup)
 - [Prerequisites](#-prerequisites)
@@ -154,6 +155,122 @@ Optimized for rapid order entry:
 ### 3. Menu Management
 Administrative tools for vendors:
 - ListView of all menu items with instant status toggles and a "Add Item" interface.
+
+---
+
+## 🔥 Sprint-2 – Firestore Read Operations
+
+### Overview
+This sprint connects the Qless app to **Cloud Firestore** and reads live data from three collections: `menu_items`, `orders`, and `users`. The UI updates instantly whenever the underlying Firestore data changes.
+
+### Collections Read
+
+| Collection | Method | Widget Used |
+| :--- | :--- | :--- |
+| `menu_items` | Real-time stream | `StreamBuilder` |
+| `orders` | Real-time stream (all + filtered pending) | `StreamBuilder` |
+| `users` | One-time document read | `FutureBuilder` |
+
+---
+
+### Code Snippets
+
+#### 1. Collection Read – All Menu Items (real-time stream)
+```dart
+// lib/services/firestore_service.dart
+Stream<QuerySnapshot<Map<String, dynamic>>> menuItemsStream() =>
+    FirebaseFirestore.instance
+        .collection('menu_items')
+        .orderBy('name')
+        .snapshots();
+```
+
+#### 2. Document Read – Vendor Profile (one-time)
+```dart
+// lib/services/firestore_service.dart
+Future<DocumentSnapshot<Map<String, dynamic>>> getUserProfile(String uid) =>
+    FirebaseFirestore.instance.collection('users').doc(uid).get();
+```
+
+#### 3. Filtered Query – Pending Orders Only
+```dart
+// lib/services/firestore_service.dart
+Stream<QuerySnapshot<Map<String, dynamic>>> pendingOrdersStream() =>
+    FirebaseFirestore.instance
+        .collection('orders')
+        .where('status', isEqualTo: 'pending')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+```
+
+#### 4. StreamBuilder – Live Menu UI
+```dart
+// lib/screens/admin/menu_items_screen.dart
+StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+  stream: FirestoreService.instance.menuItemsStream(),
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+      return const Center(child: Text('No data available'));
+    }
+    final docs = snapshot.data!.docs;
+    return ListView.builder(
+      itemCount: docs.length,
+      itemBuilder: (context, index) {
+        final data = docs[index].data();
+        return ListTile(
+          title: Text(data['name'] as String? ?? ''),
+          subtitle: Text('₹${data['price']}'),
+        );
+      },
+    );
+  },
+);
+```
+
+#### 5. FutureBuilder – Single Document (Vendor Profile)
+```dart
+// lib/screens/admin/vendor_profile_screen.dart
+FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+  future: FirestoreService.instance.getUserProfile(uid),
+  builder: (context, snapshot) {
+    if (!snapshot.hasData || !snapshot.data!.exists) {
+      return const Center(child: Text('No profile found'));
+    }
+    final data = snapshot.data!.data()!;
+    return Text('Shop: ${data['shopName']}');
+  },
+);
+```
+
+---
+
+### New Files Added
+
+| File | Purpose |
+| :--- | :--- |
+| `lib/services/firestore_service.dart` | Central service for all Firestore read operations |
+| `lib/screens/admin/menu_items_screen.dart` | Live menu list via `StreamBuilder` |
+| `lib/screens/admin/live_orders_screen.dart` | Live orders (all + pending filter) via `StreamBuilder` |
+| `lib/screens/admin/vendor_profile_screen.dart` | One-time profile read via `FutureBuilder` |
+
+---
+
+### Reflection
+
+**Which read methods were used?**  
+- `StreamBuilder` with `.snapshots()` for `menu_items` and `orders` – provides real-time push updates with zero manual refresh.  
+- `FutureBuilder` with `.get()` for the `users` profile document – used for data that does not change during the session.
+
+**Why are real-time streams useful?**  
+Streams use Firestore's WebSocket connection to push diffs directly to the device. The UI rebuilds only when data actually changes, making this ideal for an order-management app where vendors need to see new orders the moment they are placed – without polling.
+
+**Challenges faced:**  
+- `cloud_firestore ^5.0.0` conflicted with the existing `firebase_core ^4.4.0`; resolved by upgrading to `cloud_firestore ^6.1.2`.  
+- Firestore composite queries (`.where` + `.orderBy`) require a composite index in the Firebase console. The `pendingOrdersStream()` will surface a link in the debug console to create the index automatically.  
+- Null safety: all Firestore fields are typed as `dynamic`, so every field access uses safe casting with default fallback values (e.g., `data['name'] as String? ?? 'Unnamed'`).
 
 ---
 
@@ -478,7 +595,7 @@ Developed with ❤️ by **Team codynamics**
 
 © 2025 Developed by **Team codynamics**
 
-## [Sprint-2] Persistent Login State (Auto-Login) � Team Qless
+## [Sprint-2] Persistent Login State (Auto-Login) � Team Qless
 
 ### Overview
 This implementation handles user sessions and persistent login states cleanly using Firebase Authentication. It avoids forcing users to repeatedly log in across app restarts.
