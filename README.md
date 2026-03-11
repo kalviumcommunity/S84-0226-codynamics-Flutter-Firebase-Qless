@@ -19,6 +19,7 @@ Qless is a robust, real-time **Flutter + Firebase** application specifically des
 - [State Management Strategy](#-state-management-strategy)
 - [UI Component Structure](#-ui-component-structure)
 - [Sprint-2 – Firestore Read Operations](#-sprint-2--firestore-read-operations)
+- [Sprint-2 – Managing Images, Icons, and Local Assets](#-sprint-2--managing-images-icons-and-local-assets)
 - [Critical Business Logic](#-critical-business-logic)
 - [Gradle & Android Build Setup](#-gradle--android-build-setup)
 - [Prerequisites](#-prerequisites)
@@ -636,4 +637,95 @@ home: StreamBuilder<User?>(
 - **Why persistent login is essential**: Greatly improves user experience and retention by eliminating the friction of repeatedly authenticating. Modern users expect an app to remember them.
 - **How Firebase makes session handling easier**: Firebase manages all underlying token handshakes, expiration, and refresh logic. uthStateChanges() provides a reactive, single source of truth for the entire app rather than relying on manual checks or SharedPreferences.
 - **Any issues faced while testing auto-login**: The primary challenge was properly integrating the stream with the existing splash screen flow, ensuring a seamless visual transition before showing the landing or auth page.
+
+---
+
+## 🖼️ Sprint-2 – Managing Images, Icons, and Local Assets
+
+### Project Title
+**Qless – Asset Management Setup**  
+Team **codynamics** | Branch: `sprint2-managing-assets`
+
+### Overview
+This task covers adding, registering, and displaying local image assets alongside Flutter's built-in icons. Assets are static resources (images, icons, fonts) bundled with the app and declared in `pubspec.yaml`.
+
+### Folder Structure
+```
+assets/
+ ├── images/
+ │    ├── logo.png         ← App logo
+ │    ├── banner.png       ← Banner image
+ │    └── background.png   ← Background for containers
+ └── icons/
+      ├── star.png         ← Custom star icon
+      └── profile.png      ← Custom profile icon
+```
+
+### pubspec.yaml Registration
+```yaml
+flutter:
+  assets:
+    - .env
+    - assets/images/
+    - assets/icons/
+```
+
+### Code Snippets
+
+**Display a local image:**
+```dart
+Image.asset(
+  'assets/images/logo.png',
+  width: 150,
+  height: 150,
+  fit: BoxFit.cover,
+)
+```
+
+**Use image as container background:**
+```dart
+Container(
+  decoration: BoxDecoration(
+    image: DecorationImage(
+      image: AssetImage('assets/images/background.png'),
+      fit: BoxFit.cover,
+    ),
+  ),
+  child: Center(
+    child: Text('Welcome to Qless!',
+      style: TextStyle(color: Colors.white, fontSize: 22)),
+  ),
+)
+```
+
+**Material icons:**
+```dart
+Row(
+  mainAxisAlignment: MainAxisAlignment.center,
+  children: [
+    Icon(Icons.flutter_dash, color: Colors.blue, size: 36),
+    Icon(Icons.star, color: Colors.amber, size: 36),
+    Icon(Icons.android, color: Colors.green, size: 36),
+  ],
+)
+```
+
+**Cupertino icons:**
+```dart
+import 'package:flutter/cupertino.dart';
+
+Icon(CupertinoIcons.heart, color: Colors.red)
+```
+
+### Navigation
+The `AssetDemoScreen` is accessible from `CustomerLandingPage` via the **image FAB button** (orange, bottom-right).
+
+### Screenshots
+*Add screenshots here showing the AssetDemoScreen with local images and icons.*
+
+### Reflection
+- **Steps to load assets correctly**: Create the folder, place the image files, declare the path in `pubspec.yaml` under `flutter: assets:`, then run `flutter pub get`. Reference with `Image.asset()` or `AssetImage()`.
+- **Common pubspec.yaml errors**: Wrong indentation (YAML requires exactly 2 spaces), forgetting to list a directory, or a path typo that silently fails at runtime showing a broken-image box.
+- **How proper asset management supports scalability**: Organizing assets into typed sub-folders (`images/`, `icons/`) and declaring whole directories (e.g., `assets/images/`) means new files are automatically included without editing `pubspec.yaml` for each one, keeping the config clean as the project grows.
+
 
