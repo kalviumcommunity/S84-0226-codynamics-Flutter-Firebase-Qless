@@ -20,6 +20,7 @@ Qless is a robust, real-time **Flutter + Firebase** application specifically des
 - [UI Component Structure](#-ui-component-structure)
 - [Sprint-2 – Firestore Read Operations](#-sprint-2--firestore-read-operations)
 - [Sprint-2 – Managing Images, Icons, and Local Assets](#-sprint-2--managing-images-icons-and-local-assets)
+- [Sprint-2 – Firestore Database Schema Design](#-sprint-2--firestore-database-schema-design)
 - [Critical Business Logic](#-critical-business-logic)
 - [Gradle & Android Build Setup](#-gradle--android-build-setup)
 - [Prerequisites](#-prerequisites)
@@ -272,6 +273,270 @@ Streams use Firestore's WebSocket connection to push diffs directly to the devic
 - `cloud_firestore ^5.0.0` conflicted with the existing `firebase_core ^4.4.0`; resolved by upgrading to `cloud_firestore ^6.1.2`.  
 - Firestore composite queries (`.where` + `.orderBy`) require a composite index in the Firebase console. The `pendingOrdersStream()` will surface a link in the debug console to create the index automatically.  
 - Null safety: all Firestore fields are typed as `dynamic`, so every field access uses safe casting with default fallback values (e.g., `data['name'] as String? ?? 'Unnamed'`).
+
+---
+
+## 🗄️ Sprint-2 – Firestore Database Schema Design
+
+### Overview
+Qless is a real-time **vendor queue & order management** app for street-food stalls. All persistent state lives in Cloud Firestore. This section defines the complete data model — every collection, document ID strategy, field name, data type, subcollection, and relationship needed to run the app at scale.
+
+---
+
+### 📋 Data Requirements List
+
+| # | Data Entity | Why needed |
+|---|---|---|
+| 1 | **User / Vendor profiles** | Store shop identity, owner info, and account metadata |
+| 2 | **Menu items** | Dynamic product catalogue per vendor, toggled live |
+| 3 | **Orders** | Transactional records linking token, items, and payment state |
+| 4 | **Order items** (subcollection) | Per-order line items that scale independently from the order document |
+| 5 | **Queue tokens** | Daily counter that drives the "next token" display |
+| 6 | **Categories** | Group menu items without duplicating category strings across thousands of documents |
+
+---
+
+### 🏗️ Firestore Schema
+
+```
+Firestore Root
+│
+├── users (collection)
+│    └── {uid}  ← Firebase Auth UID as document ID
+│         ├── shopName      : string
+│         ├── ownerName     : string
+│         ├── email         : string
+│         ├── phone         : string          (optional)
+│         ├── isActive      : boolean
+│         ├── createdAt     : timestamp
+│         └── updatedAt     : timestamp
+│
+├── menu_items (collection)
+│    └── {autoId}
+│         ├── vendorId      : string          → ref: users/{uid}
+│         ├── name          : string
+│         ├── description   : string
+│         ├── price         : number
+│         ├── category      : string
+│         ├── imageUrl      : string
+│         ├── isAvailable   : boolean
+│         ├── createdAt     : timestamp
+│         └── updatedAt     : timestamp
+│
+├── orders (collection)
+│    └── {autoId}
+│         ├── vendorId      : string          → ref: users/{uid}
+│         ├── tokenNumber   : number
+│         ├── customerName  : string
+│         ├── status        : string          (pending | cooking | ready | completed)
+│         ├── totalAmount   : number
+│         ├── isPaid        : boolean
+│         ├── createdAt     : timestamp
+│         ├── updatedAt     : timestamp
+│         └── items (subcollection)
+│              └── {autoId}
+│                   ├── menuItemId : string   → ref: menu_items/{autoId}
+│                   ├── name       : string   (denormalized for speed)
+│                   ├── price      : number   (snapshot at order time)
+│                   └── quantity   : number
+│
+├── queue_tokens (collection)
+│    └── {vendorId}_{date}   ← e.g. "uid123_2026-03-12"
+│         ├── vendorId      : string          → ref: users/{uid}
+│         ├── date          : string          (YYYY-MM-DD)
+│         ├── currentToken  : number
+│         ├── lastToken     : number
+│         └── isActive      : boolean
+│
+└── categories (collection)
+     └── {autoId}
+          ├── vendorId      : string          → ref: users/{uid}
+          ├── name          : string
+          └── sortOrder     : number
+```
+
+---
+
+### 📄 Sample JSON Documents
+
+#### `users/{uid}`
+```json
+{
+  "shopName": "Spice Garden",
+  "ownerName": "Ravi Kumar",
+  "email": "ravi@spicegarden.in",
+  "phone": "+91-9876543210",
+  "isActive": true,
+  "createdAt": "2026-01-15T08:00:00Z",
+  "updatedAt": "2026-03-01T10:30:00Z"
+}
+```
+
+#### `menu_items/{autoId}`
+```json
+{
+  "vendorId": "uid_abc123",
+  "name": "Chicken Biryani",
+  "description": "Slow-cooked basmati rice with spiced chicken",
+  "price": 180.0,
+  "category": "Main Course",
+  "imageUrl": "https://storage.googleapis.com/qless/biryani.jpg",
+  "isAvailable": true,
+  "createdAt": "2026-02-01T09:00:00Z",
+  "updatedAt": "2026-03-10T12:00:00Z"
+}
+```
+
+#### `orders/{autoId}`
+```json
+{
+  "vendorId": "uid_abc123",
+  "tokenNumber": 47,
+  "customerName": "Meera",
+  "status": "cooking",
+  "totalAmount": 360.0,
+  "isPaid": false,
+  "createdAt": "2026-03-12T11:05:00Z",
+  "updatedAt": "2026-03-12T11:06:30Z"
+}
+```
+
+#### `orders/{autoId}/items/{autoId}` (subcollection)
+```json
+{
+  "menuItemId": "menuitem_xyz789",
+  "name": "Chicken Biryani",
+  "price": 180.0,
+  "quantity": 2
+}
+```
+
+#### `queue_tokens/uid_abc123_2026-03-12`
+```json
+{
+  "vendorId": "uid_abc123",
+  "date": "2026-03-12",
+  "currentToken": 47,
+  "lastToken": 52,
+  "isActive": true
+}
+```
+
+#### `categories/{autoId}`
+```json
+{
+  "vendorId": "uid_abc123",
+  "name": "Main Course",
+  "sortOrder": 1
+}
+```
+
+---
+
+### 🔀 Schema Diagram (Mermaid)
+
+```mermaid
+erDiagram
+    USERS {
+        string uid PK
+        string shopName
+        string ownerName
+        string email
+        string phone
+        boolean isActive
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    MENU_ITEMS {
+        string autoId PK
+        string vendorId FK
+        string name
+        string description
+        number price
+        string category
+        string imageUrl
+        boolean isAvailable
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    ORDERS {
+        string autoId PK
+        string vendorId FK
+        number tokenNumber
+        string customerName
+        string status
+        number totalAmount
+        boolean isPaid
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    ORDER_ITEMS {
+        string autoId PK
+        string orderId FK
+        string menuItemId FK
+        string name
+        number price
+        number quantity
+    }
+
+    QUEUE_TOKENS {
+        string docId PK
+        string vendorId FK
+        string date
+        number currentToken
+        number lastToken
+        boolean isActive
+    }
+
+    CATEGORIES {
+        string autoId PK
+        string vendorId FK
+        string name
+        number sortOrder
+    }
+
+    USERS ||--o{ MENU_ITEMS : "owns"
+    USERS ||--o{ ORDERS : "receives"
+    USERS ||--o| QUEUE_TOKENS : "manages"
+    USERS ||--o{ CATEGORIES : "defines"
+    ORDERS ||--|{ ORDER_ITEMS : "contains"
+    MENU_ITEMS ||--o{ ORDER_ITEMS : "referenced by"
+```
+
+---
+
+### ✅ Schema Validation Checklist
+
+| Check | Status |
+|---|---|
+| Structure matches Qless app requirements | ✅ |
+| Scales to thousands of users / orders | ✅ (auto-IDs, no unbounded arrays) |
+| Related data grouped logically | ✅ |
+| Subcollections used where data can grow large (order items) | ✅ |
+| `lowerCamelCase` field names throughout | ✅ |
+| Timestamps (`createdAt`, `updatedAt`) on every document | ✅ |
+| Deeply nested maps avoided | ✅ |
+| Denormalised `name`/`price` in order items for read performance | ✅ |
+
+---
+
+### 💡 Reflection
+
+**Why this structure?**  
+Qless is a high-frequency writing app during rush hours — dozens of new order documents per minute. Keeping orders as top-level documents (not inside a user document) means Firestore can scale reads and writes horizontally. The `items` subcollection prevents the 1 MB document size limit from ever being hit as order line-items grow.
+
+**Performance and scalability considerations:**  
+- The `queue_tokens` document uses `vendorId_date` as its ID, giving an O(1) lookup with no query needed — critical for the "next token" feature under high load.  
+- `menu_items` are stored flat with a `vendorId` field rather than nested inside the user document; this allows `.where('vendorId', isEqualTo: uid)` queries and lets multiple vendors' menus be cached independently.  
+- Category names are denormalised into `menu_items.category` so a single Firestore read returns a complete menu item without a join.
+
+**Challenges faced:**  
+- Deciding between embedding `items` as an array-of-maps inside the order document vs. a subcollection. Chosen subcollection because an order with 50+ items would approach Firestore's 1 MB document limit and makes pagination easier.  
+- Composite index planning: queries like `menu_items` filtered by `vendorId` and ordered by `name` require a Firestore composite index, which must be created in the Firebase console.  
+- Timestamp vs. string for `date` in `queue_tokens`: chose `string` (`YYYY-MM-DD`) so the document ID can encode both vendor and date without additional parsing.
 
 ---
 
