@@ -10,6 +10,7 @@ import 'screens/splash/splash_screen.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/stateless_stateful_demo.dart';
 import 'screens/forms_demo.dart';
+import 'screens/devtools_demo.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,6 +45,7 @@ class QlessApp extends StatelessWidget {
       routes: {
         '/demo': (context) => const StatelessStatefulDemo(),
         '/forms': (context) => const FormsDemo(),
+        '/devtools': (context) => const DevToolsDemo(),
       },
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
