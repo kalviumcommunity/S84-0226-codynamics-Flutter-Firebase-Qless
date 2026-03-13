@@ -9,6 +9,7 @@ import 'screens/customer/customer_landing_page.dart';
 import 'screens/splash/splash_screen.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/stateless_stateful_demo.dart';
+import 'screens/forms_demo.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +42,7 @@ class QlessApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       routes: {
         '/demo': (context) => const StatelessStatefulDemo(),
+        '/forms': (context) => const FormsDemo(),
       },
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
