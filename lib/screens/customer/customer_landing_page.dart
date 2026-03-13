@@ -191,7 +191,6 @@ class CustomerLandingPage extends StatelessWidget {
     bool isWideScreen,
     bool isDesktop,
   ) {
-    final screenWidth = MediaQuery.of(context).size.width;
     final logoSize = isDesktop ? 80.0 : (isWideScreen ? 70.0 : 60.0);
     final titleSize = isDesktop ? 56.0 : (isWideScreen ? 52.0 : 42.0);
     final taglineSize = isDesktop ? 22.0 : (isWideScreen ? 20.0 : 16.0);

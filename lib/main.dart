@@ -7,7 +7,6 @@ import 'firebase_options.dart';
 import 'screens/auth/auth_screen.dart';
 import 'screens/customer/customer_landing_page.dart';
 import 'screens/splash/splash_screen.dart';
-import 'screens/admin/admin_dashboard.dart';
 import 'screens/stateless_stateful_demo.dart';
 import 'screens/forms_demo.dart';
 import 'screens/devtools_demo.dart';
@@ -136,44 +135,32 @@ class QlessApp extends StatelessWidget {
   }
 }
 
-class AppEntry extends StatefulWidget {
+class AppEntry extends StatelessWidget {
   const AppEntry({super.key});
 
   @override
-  State<AppEntry> createState() => _AppEntryState();
-}
-
-class _AppEntryState extends State<AppEntry> {
-  bool _showSplash = true;
-
-  void _onSplashComplete() {
-    setState(() {
-      _showSplash = false;
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (_showSplash) {
-      return SplashScreen(onComplete: _onSplashComplete);
-    }
-
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
+          return SplashScreen(
+            onComplete: () {
+              // This splash is display-only while Firebase resolves persisted auth state.
+            },
+          );
+        }
+        if (snapshot.hasError) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+            body: Center(child: Text('Something went wrong. Please restart the app.')),
           );
         }
         if (snapshot.hasData) {
-          // User is logged in
           return const CustomerLandingPage();
         }
-        // User is not logged in
         return AuthScreen(
           onAuthSuccess: () {
-            // StreamBuilder automatically handles the navigation once Firebase auth state changes.
+            // StreamBuilder updates automatically when auth state changes.
           },
         );
       },
