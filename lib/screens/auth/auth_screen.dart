@@ -18,7 +18,6 @@ class _AuthScreenState extends State<AuthScreen>
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  final bool _isLogin = true;
   bool _isLoading = false;
   bool _obscurePassword = true;
   String? _errorMessage;
@@ -125,16 +124,6 @@ class _AuthScreenState extends State<AuthScreen>
         return 'Authentication failed. Please try again.';
     }
   }
-
-  void _toggleAuthMode() {
-    // setState(() {
-    //   _isLogin = !_isLogin;
-    //   _errorMessage = null;
-    // });
-    // _animController.reset();
-    // _animController.forward();
-  }
-
 
   @override
   Widget build(BuildContext context) {
