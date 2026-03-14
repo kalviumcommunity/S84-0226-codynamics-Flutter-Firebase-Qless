@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:qless/screens/customer/customer_landing_page.dart';
 
 class AuthScreen extends StatefulWidget {
   final VoidCallback onAuthSuccess;
+  final String initialRole;
 
-  const AuthScreen({super.key, required this.onAuthSuccess});
+  const AuthScreen({
+    super.key,
+    required this.onAuthSuccess,
+    this.initialRole = 'user',
+  });
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -14,12 +21,19 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen>
     with SingleTickerProviderStateMixin {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _formKey = GlobalKey<FormState>();
+
+  final _nameController = TextEditingController();
+  final _shopNameController = TextEditingController();
+  final _ownerNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   bool _isLoading = false;
+  bool _isLogin = true;
   bool _obscurePassword = true;
+  String _selectedRole = 'user';
   String? _errorMessage;
 
   late AnimationController _animController;
@@ -29,6 +43,7 @@ class _AuthScreenState extends State<AuthScreen>
   @override
   void initState() {
     super.initState();
+    _selectedRole = widget.initialRole;
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -50,6 +65,9 @@ class _AuthScreenState extends State<AuthScreen>
   @override
   void dispose() {
     _animController.dispose();
+    _nameController.dispose();
+    _shopNameController.dispose();
+    _ownerNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -64,16 +82,17 @@ class _AuthScreenState extends State<AuthScreen>
     });
 
     try {
-      await _auth.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
+      if (_isLogin) {
+        await _signIn();
+      } else {
+        await _signUp();
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Login Successful!',
+              _isLogin ? 'Login successful!' : 'Account created successfully!',
               style: GoogleFonts.poppins(),
             ),
             backgroundColor: Colors.green,
@@ -86,8 +105,6 @@ class _AuthScreenState extends State<AuthScreen>
         widget.onAuthSuccess();
       }
     } on FirebaseAuthException catch (e) {
-
-
       setState(() {
         _errorMessage = _getReadableError(e.code);
       });
@@ -102,6 +119,77 @@ class _AuthScreenState extends State<AuthScreen>
         });
       }
     }
+  }
+
+  Future<void> _signIn() async {
+    final credential = await _auth.signInWithEmailAndPassword(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
+
+    final uid = credential.user?.uid;
+    if (uid == null) return;
+
+    final storedRole = await _getStoredRole(uid);
+    if (storedRole != _selectedRole) {
+      await _auth.signOut();
+      throw FirebaseAuthException(
+        code: 'invalid-credential',
+        message:
+            'This account is registered as $storedRole. Please choose the correct role.',
+      );
+    }
+  }
+
+  Future<void> _signUp() async {
+    final now = FieldValue.serverTimestamp();
+
+    final credential = await _auth.createUserWithEmailAndPassword(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
+
+    final uid = credential.user?.uid;
+    if (uid == null) return;
+
+    final userData = <String, dynamic>{
+      'email': _emailController.text.trim(),
+      'role': _selectedRole,
+      'createdAt': now,
+      'updatedAt': now,
+    };
+
+    if (_selectedRole == 'vendor') {
+      userData.addAll({
+        'shopName': _shopNameController.text.trim(),
+        'ownerName': _ownerNameController.text.trim(),
+        'isActive': true,
+      });
+    } else {
+      userData.addAll({
+        'name': _nameController.text.trim(),
+      });
+    }
+
+    await _firestore.collection('users').doc(uid).set(userData);
+  }
+
+  Future<String> _getStoredRole(String uid) async {
+    final doc = await _firestore.collection('users').doc(uid).get();
+    if (!doc.exists) {
+      return 'user';
+    }
+
+    final data = doc.data();
+    final role = data?['role'] as String?;
+    if (role == 'vendor' || role == 'user') {
+      return role!;
+    }
+
+    final hasVendorFields =
+        (data?['shopName'] as String?)?.isNotEmpty == true ||
+            (data?['ownerName'] as String?)?.isNotEmpty == true;
+    return hasVendorFields ? 'vendor' : 'user';
   }
 
   String _getReadableError(String code) {
@@ -120,6 +208,8 @@ class _AuthScreenState extends State<AuthScreen>
         return 'Too many attempts. Please try again later.';
       case 'invalid-credential':
         return 'Invalid email or password. Please check your credentials.';
+      case 'operation-not-allowed':
+        return 'Email/password sign-in is not enabled in Firebase.';
       default:
         return 'Authentication failed. Please try again.';
     }
@@ -181,7 +271,9 @@ class _AuthScreenState extends State<AuthScreen>
                             children: [
                               // Title
                               Text(
-                                'Vendor Login',
+                                _isLogin
+                                    ? '${_selectedRole == 'vendor' ? 'Vendor' : 'User'} Login'
+                                    : '${_selectedRole == 'vendor' ? 'Vendor' : 'User'} Sign Up',
                                 style: GoogleFonts.poppins(
                                   fontSize: 26,
                                   fontWeight: FontWeight.bold,
@@ -191,12 +283,38 @@ class _AuthScreenState extends State<AuthScreen>
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Sign in to manage your vendor dashboard',
+                                _isLogin
+                                    ? 'Sign in as ${_selectedRole == 'vendor' ? 'vendor' : 'user'}'
+                                    : 'Create your ${_selectedRole == 'vendor' ? 'vendor' : 'user'} account',
                                 style: GoogleFonts.inter(
                                   fontSize: 14,
                                   color: Colors.grey[600],
                                 ),
                                 textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 20),
+
+                              SegmentedButton<String>(
+                                segments: const [
+                                  ButtonSegment<String>(
+                                    value: 'user',
+                                    label: Text('User'),
+                                    icon: Icon(Icons.person_outline),
+                                  ),
+                                  ButtonSegment<String>(
+                                    value: 'vendor',
+                                    label: Text('Vendor'),
+                                    icon: Icon(Icons.storefront_outlined),
+                                  ),
+                                ],
+                                selected: {_selectedRole},
+                                onSelectionChanged: (value) {
+                                  setState(() {
+                                    _selectedRole = value.first;
+                                    _errorMessage = null;
+                                  });
+                                },
+                                showSelectedIcon: false,
                               ),
                               const SizedBox(height: 28),
 
@@ -227,6 +345,51 @@ class _AuthScreenState extends State<AuthScreen>
                                       ),
                                     ],
                                   ),
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+
+                              if (!_isLogin && _selectedRole == 'user') ...[
+                                _buildTextField(
+                                  controller: _nameController,
+                                  label: 'Full Name',
+                                  hint: 'Your name',
+                                  icon: Icons.person_outline,
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Please enter your name';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+
+                              if (!_isLogin && _selectedRole == 'vendor') ...[
+                                _buildTextField(
+                                  controller: _shopNameController,
+                                  label: 'Shop Name',
+                                  hint: 'Your shop name',
+                                  icon: Icons.store_outlined,
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Please enter your shop name';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                                _buildTextField(
+                                  controller: _ownerNameController,
+                                  label: 'Owner Name',
+                                  hint: 'Owner full name',
+                                  icon: Icons.badge_outlined,
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Please enter owner name';
+                                    }
+                                    return null;
+                                  },
                                 ),
                                 const SizedBox(height: 16),
                               ],
@@ -311,7 +474,7 @@ class _AuthScreenState extends State<AuthScreen>
                                           ),
                                         )
                                       : Text(
-                                          'Sign In',
+                                          _isLogin ? 'Sign In' : 'Create Account',
                                           style: GoogleFonts.poppins(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
@@ -321,7 +484,46 @@ class _AuthScreenState extends State<AuthScreen>
                               ),
                               const SizedBox(height: 16),
 
-                              // Toggle mode removed for admin login only
+                              TextButton(
+                                onPressed: _isLoading
+                                    ? null
+                                    : () {
+                                        setState(() {
+                                          _isLogin = !_isLogin;
+                                          _errorMessage = null;
+                                        });
+                                      },
+                                child: Text(
+                                  _isLogin
+                                      ? 'Don\'t have an account? Sign Up'
+                                      : 'Already have an account? Sign In',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFFFF6B35),
+                                  ),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: _isLoading
+                                    ? null
+                                    : () {
+                                        Navigator.of(context).pushReplacement(
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                const CustomerLandingPage(),
+                                          ),
+                                        );
+                                      },
+                                child: Text(
+                                  'Continue as Guest',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -377,7 +579,7 @@ class _AuthScreenState extends State<AuthScreen>
           ),
         ),
         Text(
-          'Vendor Admin Portal',
+          'Authentication Portal',
           style: GoogleFonts.inter(
             fontSize: 14,
             color: Colors.white.withOpacity(0.9),
