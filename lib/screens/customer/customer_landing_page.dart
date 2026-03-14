@@ -468,6 +468,14 @@ class CustomerLandingPage extends StatelessWidget {
                   content: Text('Opening ${outlet['name']}...'),
                   backgroundColor: outletColor,
                   behavior: SnackBarBehavior.floating,
+                  margin: const EdgeInsets.only(
+                    bottom: 80,
+                    left: 16,
+                    right: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               );
             }
