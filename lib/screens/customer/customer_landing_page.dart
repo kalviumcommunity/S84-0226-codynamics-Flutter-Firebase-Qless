@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:qless/screens/auth/auth_screen.dart';
 import 'package:qless/screens/admin/admin_dashboard.dart';
 import 'package:qless/screens/responsive_home.dart';
-import 'package:qless/screens/asset_demo_screen.dart';
 
 class CustomerLandingPage extends StatelessWidget {
   const CustomerLandingPage({super.key});
@@ -100,22 +99,6 @@ class CustomerLandingPage extends StatelessWidget {
             },
             child: const Icon(Icons.aspect_ratio),
             tooltip: 'Show Responsive Demo',
-          ),
-          const SizedBox(height: 16),
-          FloatingActionButton.small(
-            heroTag: 'asset_demo',
-            backgroundColor: Colors.deepOrange,
-            foregroundColor: Colors.white,
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AssetDemoScreen(),
-                ),
-              );
-            },
-            child: const Icon(Icons.image),
-            tooltip: 'Asset Demo',
           ),
           const SizedBox(height: 16),
           FloatingActionButton(
