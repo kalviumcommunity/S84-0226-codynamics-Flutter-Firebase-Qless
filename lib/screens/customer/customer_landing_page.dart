@@ -464,21 +464,24 @@ class CustomerLandingPage extends StatelessWidget {
       onTap: isOpen
           ? () {
               // TODO: Navigate to outlet menu
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Opening ${outlet['name']}...'),
-                  backgroundColor: outletColor,
-                  behavior: SnackBarBehavior.floating,
-                  margin: const EdgeInsets.only(
-                    bottom: 80,
-                    left: 16,
-                    right: 16,
+              ScaffoldMessenger.of(context)
+                ..clearSnackBars()
+                ..showSnackBar(
+                  SnackBar(
+                    content: Text('Opening ${outlet['name']}...'),
+                    backgroundColor: outletColor,
+                    behavior: SnackBarBehavior.floating,
+                    margin: const EdgeInsets.only(
+                      bottom: 16,
+                      left: 16,
+                      right: 16,
+                    ),
+                    duration: const Duration(seconds: 2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              );
+                );
             }
           : null,
       child: Container(
