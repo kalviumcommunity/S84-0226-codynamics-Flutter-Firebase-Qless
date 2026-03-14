@@ -6,7 +6,12 @@ import 'package:qless/screens/admin/admin_dashboard.dart';
 import 'package:qless/screens/responsive_home.dart';
 
 class CustomerLandingPage extends StatelessWidget {
-  const CustomerLandingPage({super.key});
+  final bool isAuthenticatedUser;
+
+  const CustomerLandingPage({
+    super.key,
+    this.isAuthenticatedUser = false,
+  });
 
   static final List<Map<String, dynamic>> _foodOutlets = [
     {
@@ -74,70 +79,91 @@ class CustomerLandingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          FloatingActionButton.small(
-            heroTag: 'logout_btn',
-            backgroundColor: Colors.redAccent,
-            foregroundColor: Colors.white,
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-            },
-            child: const Icon(Icons.logout),
-            tooltip: 'Logout',
-          ),
-          const SizedBox(height: 16),
-          FloatingActionButton.small(
-            heroTag: 'responsive_demo',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ResponsiveHome()),
-              );
-            },
-            child: const Icon(Icons.aspect_ratio),
-            tooltip: 'Show Responsive Demo',
-          ),
-          const SizedBox(height: 16),
-          FloatingActionButton(
-            heroTag: 'admin_login',
-            onPressed: () {
-              // Check if already logged in
-              if (FirebaseAuth.instance.currentUser != null) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AdminDashboard(),
-                  ),
-                );
-              } else {
-                // Not logged in, go to Auth Screen
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AuthScreen(
-                      initialRole: 'vendor',
-                      onAuthSuccess: () {
-                        // After successful login, replace with Admin Dashboard
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AdminDashboard(),
+      appBar: isAuthenticatedUser
+          ? AppBar(
+              title: Text(
+                'Qless',
+                style: GoogleFonts.righteous(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              actions: [
+                IconButton(
+                  onPressed: () => _showProfileSheet(context),
+                  icon: const Icon(Icons.account_circle_outlined),
+                  tooltip: 'Profile',
+                ),
+              ],
+            )
+          : null,
+      floatingActionButton: isAuthenticatedUser
+          ? null
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                FloatingActionButton.small(
+                  heroTag: 'logout_btn',
+                  backgroundColor: Colors.redAccent,
+                  foregroundColor: Colors.white,
+                  onPressed: () async {
+                    await FirebaseAuth.instance.signOut();
+                  },
+                  child: const Icon(Icons.logout),
+                  tooltip: 'Logout',
+                ),
+                const SizedBox(height: 16),
+                FloatingActionButton.small(
+                  heroTag: 'responsive_demo',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ResponsiveHome()),
+                    );
+                  },
+                  child: const Icon(Icons.aspect_ratio),
+                  tooltip: 'Show Responsive Demo',
+                ),
+                const SizedBox(height: 16),
+                FloatingActionButton(
+                  heroTag: 'admin_login',
+                  onPressed: () {
+                    // Check if already logged in
+                    if (FirebaseAuth.instance.currentUser != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AdminDashboard(),
+                        ),
+                      );
+                    } else {
+                      // Not logged in, go to Auth Screen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AuthScreen(
+                            initialRole: 'vendor',
+                            onAuthSuccess: () {
+                              // After successful login, replace with Admin Dashboard
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AdminDashboard(),
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                );
-              }
-            },
-            child: const Icon(Icons.admin_panel_settings),
-            tooltip: 'Admin Login',
-          ),
-        ],
-      ),
+                        ),
+                      );
+                    }
+                  },
+                  child: const Icon(Icons.admin_panel_settings),
+                  tooltip: 'Admin Login',
+                ),
+              ],
+            ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -167,6 +193,51 @@ class CustomerLandingPage extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+
+  void _showProfileSheet(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Profile',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  user?.email ?? 'Signed in user',
+                  style: GoogleFonts.poppins(color: Colors.grey[700]),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      await FirebaseAuth.instance.signOut();
+                    },
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Logout'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
