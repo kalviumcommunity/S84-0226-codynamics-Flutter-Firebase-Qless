@@ -23,6 +23,10 @@ class FirestoreService {
   Stream<QuerySnapshot<Map<String, dynamic>>> menuItemsStream() =>
       _menuItems.orderBy('name').snapshots();
 
+  /// Stream of users registered as vendors.
+  Stream<QuerySnapshot<Map<String, dynamic>>> vendorsStream() =>
+      _users.where('role', isEqualTo: 'vendor').snapshots();
+
   /// Stream of live orders, newest first.
   Stream<QuerySnapshot<Map<String, dynamic>>> ordersStream() =>
       _orders.orderBy('createdAt', descending: true).snapshots();

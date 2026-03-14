@@ -176,23 +176,27 @@ class _RoleBasedHome extends StatelessWidget {
   const _RoleBasedHome({required this.user});
 
   Future<String> _resolveRole() async {
-    final doc =
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    try {
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
 
-    if (!doc.exists) {
+      if (!doc.exists) {
+        return 'user';
+      }
+
+      final data = doc.data();
+      final role = data?['role'] as String?;
+      if (role == 'vendor' || role == 'user') {
+        return role!;
+      }
+
+      final hasVendorFields =
+          (data?['shopName'] as String?)?.isNotEmpty == true ||
+              (data?['ownerName'] as String?)?.isNotEmpty == true;
+      return hasVendorFields ? 'vendor' : 'user';
+    } catch (_) {
       return 'user';
     }
-
-    final data = doc.data();
-    final role = data?['role'] as String?;
-    if (role == 'vendor' || role == 'user') {
-      return role!;
-    }
-
-    final hasVendorFields =
-        (data?['shopName'] as String?)?.isNotEmpty == true ||
-            (data?['ownerName'] as String?)?.isNotEmpty == true;
-    return hasVendorFields ? 'vendor' : 'user';
   }
 
   @override
@@ -206,19 +210,11 @@ class _RoleBasedHome extends StatelessWidget {
           );
         }
 
-        if (snapshot.hasError) {
-          return const Scaffold(
-            body: Center(
-              child: Text('Unable to load account role. Please restart the app.'),
-            ),
-          );
-        }
-
         final role = snapshot.data ?? 'user';
         if (role == 'vendor') {
           return const AdminDashboard();
         }
-        return const CustomerLandingPage();
+        return const CustomerLandingPage(isAuthenticatedUser: true);
       },
     );
   }
