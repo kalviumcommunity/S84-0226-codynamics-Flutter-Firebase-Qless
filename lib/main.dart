@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'screens/auth/auth_screen.dart';
+import 'screens/admin/admin_dashboard.dart';
 import 'screens/customer/customer_landing_page.dart';
 import 'screens/splash/splash_screen.dart';
 import 'screens/stateless_stateful_demo.dart';
@@ -156,13 +158,67 @@ class AppEntry extends StatelessWidget {
           );
         }
         if (snapshot.hasData) {
-          return const CustomerLandingPage();
+          return _RoleBasedHome(user: snapshot.data!);
         }
         return AuthScreen(
           onAuthSuccess: () {
             // StreamBuilder updates automatically when auth state changes.
           },
         );
+      },
+    );
+  }
+}
+
+class _RoleBasedHome extends StatelessWidget {
+  final User user;
+
+  const _RoleBasedHome({required this.user});
+
+  Future<String> _resolveRole() async {
+    final doc =
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+
+    if (!doc.exists) {
+      return 'user';
+    }
+
+    final data = doc.data();
+    final role = data?['role'] as String?;
+    if (role == 'vendor' || role == 'user') {
+      return role!;
+    }
+
+    final hasVendorFields =
+        (data?['shopName'] as String?)?.isNotEmpty == true ||
+            (data?['ownerName'] as String?)?.isNotEmpty == true;
+    return hasVendorFields ? 'vendor' : 'user';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String>(
+      future: _resolveRole(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return const Scaffold(
+            body: Center(
+              child: Text('Unable to load account role. Please restart the app.'),
+            ),
+          );
+        }
+
+        final role = snapshot.data ?? 'user';
+        if (role == 'vendor') {
+          return const AdminDashboard();
+        }
+        return const CustomerLandingPage();
       },
     );
   }

@@ -135,6 +135,7 @@ class CustomerLandingPage extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => AuthScreen(
+                      initialRole: 'vendor',
                       onAuthSuccess: () {
                         // After successful login, replace with Admin Dashboard
                         Navigator.pushReplacement(
