@@ -109,11 +109,13 @@ class _AuthScreenState extends State<AuthScreen>
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
-        _errorMessage = _getReadableError(e.code);
+        _errorMessage = _getReadableError(e.code, e.message);
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'An unexpected error occurred. Please try again.';
+        _errorMessage = e.toString().contains('permission-denied')
+            ? 'Database permission denied. Please contact support.'
+            : 'An unexpected error occurred. Please try again.';
       });
     } finally {
       if (mounted) {
@@ -137,9 +139,9 @@ class _AuthScreenState extends State<AuthScreen>
     if (storedRole != _selectedRole) {
       await _auth.signOut();
       throw FirebaseAuthException(
-        code: 'invalid-credential',
+        code: 'role-mismatch',
         message:
-            'This account is registered as $storedRole. Please choose the correct role.',
+            'This account is registered as a $storedRole. Please select "${storedRole == 'vendor' ? 'Vendor' : 'User'}" and try again.',
       );
     }
   }
@@ -174,7 +176,14 @@ class _AuthScreenState extends State<AuthScreen>
       });
     }
 
-    await _firestore.collection('users').doc(uid).set(userData);
+    try {
+      await _firestore.collection('users').doc(uid).set(userData);
+    } catch (e) {
+      // Firestore write failed — delete the just-created Auth account so
+      // the user can retry without getting "email-already-in-use".
+      await credential.user?.delete();
+      rethrow;
+    }
   }
 
   Future<String> _getStoredRole(String uid) async {
@@ -195,7 +204,7 @@ class _AuthScreenState extends State<AuthScreen>
     return hasVendorFields ? 'vendor' : 'user';
   }
 
-  String _getReadableError(String code) {
+  String _getReadableError(String code, [String? message]) {
     switch (code) {
       case 'user-not-found':
         return 'No account found with this email.';
@@ -213,8 +222,12 @@ class _AuthScreenState extends State<AuthScreen>
         return 'Invalid email or password. Please check your credentials.';
       case 'operation-not-allowed':
         return 'Email/password sign-in is not enabled in Firebase.';
+      case 'role-mismatch':
+        return message ?? 'Wrong role selected. Please choose the correct role.';
+      case 'network-request-failed':
+        return 'Network error. Please check your internet connection.';
       default:
-        return 'Authentication failed. Please try again.';
+        return message ?? 'Authentication failed. Please try again.';
     }
   }
 
