@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:qless/services/firestore_service.dart';
 
 /// Displays live orders from the Firestore `orders` collection in real-time.
 /// Uses a [StreamBuilder] so any vendor update reflects instantly.
@@ -32,9 +32,9 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final stream = _pendingOnly
-        ? FirestoreService.instance.pendingOrdersStream()
-        : FirestoreService.instance.ordersStream();
+    final vendorId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    
+    final stream = _buildQuery(vendorId, _pendingOnly);
 
     return Scaffold(
       appBar: AppBar(
@@ -122,6 +122,18 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> _buildQuery(String vendorId, bool pendingOnly) {
+    var query = FirebaseFirestore.instance
+        .collection('orders')
+        .where('vendorId', isEqualTo: vendorId);
+
+    if (pendingOnly) {
+      query = query.where('status', isEqualTo: 'pending');
+    }
+
+    return query.orderBy('createdAt', descending: true).snapshots();
+  }
 
   Widget _buildSummaryBanner(
       List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
