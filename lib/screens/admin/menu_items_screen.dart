@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:qless/services/firestore_service.dart';
 
 /// Displays live menu items from the Firestore `menu_items` collection.
 /// Uses a [StreamBuilder] so the UI updates instantly on any Firestore change.
@@ -10,6 +10,8 @@ class MenuItemsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final vendorId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -20,7 +22,13 @@ class MenuItemsScreen extends StatelessWidget {
         foregroundColor: Colors.white,
       ),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: FirestoreService.instance.menuItemsStream(),
+        stream: vendorId.isNotEmpty
+            ? FirebaseFirestore.instance
+                .collection('menu_items')
+                .where('vendorId', isEqualTo: vendorId)
+                .orderBy('name')
+                .snapshots()
+            : const Stream.empty(),
         builder: (context, snapshot) {
           // ── Loading ────────────────────────────────────────────────────
           if (snapshot.connectionState == ConnectionState.waiting) {

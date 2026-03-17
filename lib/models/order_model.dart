@@ -1,7 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Allowed values for [OrderModel.status].
-enum OrderStatus { pending, cooking, ready, completed }
+enum OrderStatus { 
+  pending,    // Order placed, awaiting vendor acceptance
+  cooking,    // Order accepted and being prepared
+  ready,      // Order ready for pickup/delivery
+  completed   // Order completed
+}
 
 /// Represents a line item inside the `orders/{id}/items` subcollection.
 class OrderItemModel {

@@ -7,11 +7,13 @@ import 'package:qless/screens/customer/customer_landing_page.dart';
 class AuthScreen extends StatefulWidget {
   final VoidCallback onAuthSuccess;
   final String initialRole;
+  final Function(String role)? onRoleSelected;
 
   const AuthScreen({
     super.key,
     required this.onAuthSuccess,
     this.initialRole = 'user',
+    this.onRoleSelected,
   });
 
   @override
@@ -76,6 +78,8 @@ class _AuthScreenState extends State<AuthScreen>
   Future<void> _submitAuthForm() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (!mounted) return;
+    
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -89,6 +93,9 @@ class _AuthScreenState extends State<AuthScreen>
       }
 
       if (mounted) {
+        // Notify parent about the selected role
+        widget.onRoleSelected?.call(_selectedRole);
+        
         widget.onAuthSuccess();
         ScaffoldMessenger.of(context)
           ..clearSnackBars()
@@ -108,15 +115,19 @@ class _AuthScreenState extends State<AuthScreen>
           );
       }
     } on FirebaseAuthException catch (e) {
-      setState(() {
-        _errorMessage = _getReadableError(e.code, e.message);
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = _getReadableError(e.code, e.message);
+        });
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = e.toString().contains('permission-denied')
-            ? 'Database permission denied. Please contact support.'
-            : 'An unexpected error occurred. Please try again.';
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString().contains('permission-denied')
+              ? 'Database permission denied. Please contact support.'
+              : 'An unexpected error occurred. Please try again.';
+        });
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -127,6 +138,8 @@ class _AuthScreenState extends State<AuthScreen>
   }
 
   Future<void> _signIn() async {
+    print('🔐 Signing in with role: $_selectedRole');
+    
     final credential = await _auth.signInWithEmailAndPassword(
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
@@ -135,18 +148,29 @@ class _AuthScreenState extends State<AuthScreen>
     final uid = credential.user?.uid;
     if (uid == null) return;
 
-    final storedRole = await _getStoredRole(uid);
-    if (storedRole != _selectedRole) {
-      await _auth.signOut();
-      throw FirebaseAuthException(
-        code: 'role-mismatch',
-        message:
-            'This account is registered as a $storedRole. Please select "${storedRole == 'vendor' ? 'Vendor' : 'User'}" and try again.',
-      );
+    print('✅ Sign in successful, UID: $uid');
+    
+    // Notify parent immediately about selected role
+    widget.onRoleSelected?.call(_selectedRole);
+
+    // Update the role in Firestore to match selected toggle
+    try {
+      await _firestore.collection('users').doc(uid).set({
+        'role': _selectedRole,
+        'email': _emailController.text.trim(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      
+      print('✅ Role saved to Firestore: $_selectedRole');
+    } catch (e) {
+      print('⚠️ Could not update role in Firestore: $e');
+      // Continue anyway - role is cached in memory
     }
   }
 
   Future<void> _signUp() async {
+    print('📝 Signing up with role: $_selectedRole');
+    
     final now = FieldValue.serverTimestamp();
 
     final credential = await _auth.createUserWithEmailAndPassword(
@@ -156,6 +180,11 @@ class _AuthScreenState extends State<AuthScreen>
 
     final uid = credential.user?.uid;
     if (uid == null) return;
+
+    print('✅ Sign up successful, UID: $uid');
+    
+    // Notify parent immediately about selected role
+    widget.onRoleSelected?.call(_selectedRole);
 
     final userData = <String, dynamic>{
       'email': _emailController.text.trim(),
@@ -178,7 +207,9 @@ class _AuthScreenState extends State<AuthScreen>
 
     try {
       await _firestore.collection('users').doc(uid).set(userData);
+      print('✅ User data saved to Firestore');
     } catch (e) {
+      print('❌ Firestore write failed: $e');
       // Firestore write failed — delete the just-created Auth account so
       // the user can retry without getting "email-already-in-use".
       await credential.user?.delete();
@@ -187,11 +218,30 @@ class _AuthScreenState extends State<AuthScreen>
   }
 
   Future<String> _getStoredRole(String uid) async {
+    try {
+      // Try cache first for faster response
+      final cachedDoc = await _firestore
+          .collection('users')
+          .doc(uid)
+          .get(const GetOptions(source: Source.cache));
+      
+      if (cachedDoc.exists) {
+        return _extractRoleFromDoc(cachedDoc);
+      }
+    } catch (_) {
+      // Cache miss, continue to server
+    }
+
+    // Fetch from server
     final doc = await _firestore.collection('users').doc(uid).get();
     if (!doc.exists) {
       return 'user';
     }
 
+    return _extractRoleFromDoc(doc);
+  }
+
+  String _extractRoleFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
     final role = data?['role'] as String?;
     if (role == 'vendor' || role == 'user') {
