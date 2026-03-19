@@ -194,10 +194,18 @@ class _AuthScreenState extends State<AuthScreen>
     };
 
     if (_selectedRole == 'vendor') {
+      final shopName = _shopNameController.text.trim();
+      final ownerName = _ownerNameController.text.trim();
+      
+      print('📝 Vendor data - Shop: "$shopName", Owner: "$ownerName"');
+      
       userData.addAll({
-        'shopName': _shopNameController.text.trim(),
-        'ownerName': _ownerNameController.text.trim(),
+        'shopName': shopName,
+        'ownerName': ownerName,
         'isActive': true,
+        'phone': '',
+        'address': '',
+        'description': '',
       });
     } else {
       userData.addAll({
@@ -206,8 +214,17 @@ class _AuthScreenState extends State<AuthScreen>
     }
 
     try {
+      print('💾 Saving to Firestore: $userData');
       await _firestore.collection('users').doc(uid).set(userData);
-      print('✅ User data saved to Firestore');
+      print('✅ User data saved to Firestore successfully');
+      
+      // Verify the data was saved
+      final doc = await _firestore.collection('users').doc(uid).get();
+      if (doc.exists) {
+        print('✅ Verification: Document exists with data: ${doc.data()}');
+      } else {
+        print('⚠️ Warning: Document was not found after save');
+      }
     } catch (e) {
       print('❌ Firestore write failed: $e');
       // Firestore write failed — delete the just-created Auth account so
