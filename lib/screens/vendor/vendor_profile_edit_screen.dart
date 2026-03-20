@@ -195,10 +195,9 @@ class _EditProfileFormState extends State<_EditProfileForm> {
   late final TextEditingController _descriptionController;
   late final TextEditingController _phoneController;
   late final TextEditingController _addressController;
+  late final TextEditingController _imageUrlController;
   
-  String _imageUrl = '';
-  File? _selectedImage;
-  bool _isLoading = false;
+  bool _isUploading = false;
 
   @override
   void initState() {
@@ -208,7 +207,7 @@ class _EditProfileFormState extends State<_EditProfileForm> {
     _descriptionController = TextEditingController(text: widget.profileData['description'] ?? '');
     _phoneController = TextEditingController(text: widget.profileData['phone'] ?? '');
     _addressController = TextEditingController(text: widget.profileData['address'] ?? '');
-    _imageUrl = widget.profileData['imageUrl'] ?? '';
+    _imageUrlController = TextEditingController(text: widget.profileData['imageUrl'] ?? '');
   }
 
   @override
@@ -218,34 +217,45 @@ class _EditProfileFormState extends State<_EditProfileForm> {
     _descriptionController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
+    _imageUrlController.dispose();
     super.dispose();
   }
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _selectedImage = File(pickedFile.path);
-      });
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    
+    if (pickedFile == null) return;
+
+    setState(() => _isUploading = true);
+    try {
+      final downloadUrl = await StorageService.instance.uploadImage(
+        File(pickedFile.path),
+        'vendor_profiles',
+      );
+      if (downloadUrl != null) {
+        setState(() {
+          _imageUrlController.text = downloadUrl;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Image upload failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
     }
   }
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
-
     try {
-      if (_selectedImage != null) {
-        final storage = StorageService.instance;
-        final fileName = 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        _imageUrl = await storage.uploadImage(
-          _selectedImage!, 
-          'vendors/${widget.uid}/profile/$fileName'
-        ) ?? '';
-      }
-
+      // Update profile in Firestore
       final provider = VendorProvider();
       await provider.updateVendorProfile(
         shopName: _shopNameController.text.trim(),
@@ -253,7 +263,7 @@ class _EditProfileFormState extends State<_EditProfileForm> {
         description: _descriptionController.text.trim(),
         phone: _phoneController.text.trim(),
         address: _addressController.text.trim(),
-        imageUrl: _imageUrl,
+        imageUrl: _imageUrlController.text.trim(),
       );
 
       if (mounted) {
@@ -261,6 +271,7 @@ class _EditProfileFormState extends State<_EditProfileForm> {
           const SnackBar(
             content: Text('Profile updated successfully!'),
             backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
           ),
         );
         // Exit edit mode
@@ -271,14 +282,11 @@ class _EditProfileFormState extends State<_EditProfileForm> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error updating profile: $e'),
+            content: Text('Error updating profile: ${e.toString()}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
           ),
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
       }
     }
   }
@@ -340,47 +348,35 @@ class _EditProfileFormState extends State<_EditProfileForm> {
             maxLines: 2,
           ),
           const SizedBox(height: 16),
-          
-          Text(
-            'Profile Image',
-            style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 16),
-          ),
-          const SizedBox(height: 8),
-          GestureDetector(
-            onTap: _pickImage,
-            child: Container(
-              height: 120,
-              width: 120,
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.grey[400]!),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _imageUrlController,
+                  decoration: InputDecoration(
+                    labelText: 'Profile Image URL',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: const Icon(Icons.image),
+                    hintText: 'e.g., https://example.com/image.jpg',
+                  ),
+                ),
               ),
-              child: _selectedImage != null
-                  ? ClipOval(
-                      child: Image.file(_selectedImage!, fit: BoxFit.cover),
-                    )
-                  : _imageUrl.isNotEmpty
-                      ? ClipOval(
-                          child: Image.network(_imageUrl, fit: BoxFit.cover),
-                        )
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.add_a_photo, size: 32, color: Colors.grey[600]),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Tap to upload',
-                              style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey[600]),
-                            ),
-                          ],
-                        ),
-            ),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed: _isUploading ? null : _pickImage,
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                ),
+                child: _isUploading
+                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.upload_file),
+              ),
+            ],
           ),
-          
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: _isLoading ? null : _saveProfile,
+            onPressed: _saveProfile,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.deepOrange,
               foregroundColor: Colors.white,
@@ -389,22 +385,13 @@ class _EditProfileFormState extends State<_EditProfileForm> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: _isLoading
-                ? const SizedBox(
-                    height: 24,
-                    width: 24,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : Text(
-                    'Save Changes',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+            child: Text(
+              'Save Changes',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
