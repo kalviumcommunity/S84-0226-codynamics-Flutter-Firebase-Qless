@@ -56,7 +56,7 @@ Use consistent emoji prefixes for better log readability:
 
 ### Example Usage
 ```dart
-debugPrint('🚀 App: Initializing...');
+debugPrint('🚀 App: Initializing..');
 debugPrint('📊 Counter: Value changed to $_count');
 debugPrint('🎨 Theme: Switched to dark mode');
 debugPrint('❌ Error: Failed to load data');
