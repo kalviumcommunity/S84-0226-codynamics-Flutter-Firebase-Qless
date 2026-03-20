@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'manage_items_screen.dart';
+import 'add_edit_item_screen.dart';
 import 'vendor_orders_screen.dart';
 import 'vendor_analytics_screen.dart';
 import 'vendor_profile_edit_screen.dart';
@@ -122,7 +123,7 @@ class _DashboardHome extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const ManageItemsScreen(),
+                          builder: (_) => const AddEditItemScreen(),
                         ),
                       );
                     },

@@ -5,6 +5,8 @@ import 'package:qless/screens/auth/auth_screen.dart';
 import 'package:qless/screens/admin/admin_dashboard.dart';
 import 'package:qless/screens/responsive_home.dart';
 
+import 'package:qless/screens/customer/user_dashboard_screen.dart';
+
 class CustomerLandingPage extends StatelessWidget {
   final bool isAuthenticatedUser;
 
@@ -390,7 +392,10 @@ class CustomerLandingPage extends StatelessWidget {
         // Main CTA Button
         ElevatedButton(
           onPressed: () {
-            // TODO: Navigate to menu/order page
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const UserDashboardScreen()),
+            );
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.white,
@@ -517,25 +522,12 @@ class CustomerLandingPage extends StatelessWidget {
     return GestureDetector(
       onTap: isOpen
           ? () {
-              // TODO: Navigate to outlet menu
-              ScaffoldMessenger.of(context)
-                ..clearSnackBars()
-                ..showSnackBar(
-                  SnackBar(
-                    content: Text('Opening ${outlet['name']}...'),
-                    backgroundColor: outletColor,
-                    behavior: SnackBarBehavior.floating,
-                    margin: const EdgeInsets.only(
-                      bottom: 16,
-                      left: 16,
-                      right: 16,
-                    ),
-                    duration: const Duration(seconds: 2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                );
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const UserDashboardScreen(),
+                ),
+              );
             }
           : null,
       child: Container(
