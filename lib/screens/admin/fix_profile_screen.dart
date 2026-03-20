@@ -40,10 +40,6 @@ class _FixProfileScreenState extends State<FixProfileScreen> {
       final shopName = _shopNameController.text.trim();
       final ownerName = _ownerNameController.text.trim();
 
-      print('🔧 Fixing profile for UID: $uid');
-      print('   Shop Name: "$shopName"');
-      print('   Owner Name: "$ownerName"');
-
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'shopName': shopName,
         'ownerName': ownerName,
@@ -56,14 +52,11 @@ class _FixProfileScreenState extends State<FixProfileScreen> {
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
-      print('✅ Profile updated successfully');
-
       // Verify
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
           .get();
-      print('✅ Verification: ${doc.data()}');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -75,7 +68,6 @@ class _FixProfileScreenState extends State<FixProfileScreen> {
         Navigator.pop(context, true);
       }
     } catch (e) {
-      print('❌ Error updating profile: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

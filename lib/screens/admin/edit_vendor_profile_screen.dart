@@ -44,13 +44,6 @@ class _EditVendorProfileScreenState extends State<EditVendorProfileScreen> {
         widget.profileData['description'] as String? ?? '';
     _imageUrlController.text = widget.profileData['imageUrl'] as String? ?? '';
     _isActive = widget.profileData['isActive'] as bool? ?? true;
-    
-    // Debug print
-    print('📝 Loaded profile data for editing:');
-    print('  Shop Name: "${_shopNameController.text}"');
-    print('  Owner Name: "${_ownerNameController.text}"');
-    print('  Phone: "${_phoneController.text}"');
-    print('  Address: "${_addressController.text}"');
   }
 
   @override
@@ -283,7 +276,7 @@ class _EditVendorProfileScreenState extends State<EditVendorProfileScreen> {
                     style: GoogleFonts.poppins(fontSize: 12),
                   ),
                   value: _isActive,
-                  activeColor: Colors.deepOrange,
+                  activeThumbColor: Colors.deepOrange,
                   secondary: Icon(
                     _isActive ? Icons.visibility : Icons.visibility_off,
                     color: Colors.deepOrange,

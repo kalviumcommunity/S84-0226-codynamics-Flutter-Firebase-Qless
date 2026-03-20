@@ -172,10 +172,6 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
           // ── Data ───────────────────────────────────────────────────────
           final data = snapshot.data!.data()!;
           
-          // Debug: Print all data to see what's in Firestore
-          print('📊 Firestore data for user $uid:');
-          print(data);
-          
           final imageUrl = data['imageUrl'] as String?;
           final shopName = data['shopName'] as String? ?? '';
           final ownerName = data['ownerName'] as String? ?? '';
@@ -184,10 +180,6 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
           final address = data['address'] as String? ?? '';
           final description = data['description'] as String? ?? '';
           final isActive = data['isActive'] as bool? ?? true;
-          
-          // Debug: Print extracted values
-          print('🏪 Shop Name: "$shopName"');
-          print('👤 Owner Name: "$ownerName"');
           
           // Check if critical fields are missing
           final isMissingCriticalInfo = shopName.trim().isEmpty || ownerName.trim().isEmpty;
@@ -272,7 +264,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                               border: Border.all(color: Colors.white, width: 4),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
+                                  color: Colors.black.withValues(alpha: 0.2),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -329,7 +321,7 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                         ownerName.trim().isEmpty ? 'Owner Name Not Set' : ownerName,
                         style: GoogleFonts.poppins(
                           fontSize: 16,
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -341,8 +333,8 @@ class _VendorProfileScreenState extends State<VendorProfileScreen> {
                         ),
                         decoration: BoxDecoration(
                           color: isActive
-                              ? Colors.green.withOpacity(0.2)
-                              : Colors.grey.withOpacity(0.2),
+                              ? Colors.green.withValues(alpha: 0.2)
+                              : Colors.grey.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: isActive ? Colors.green : Colors.grey,
@@ -479,7 +471,7 @@ class _ProfileTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.deepOrange.withOpacity(0.1),
+                color: Colors.deepOrange.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(icon, color: Colors.deepOrange, size: 24),
