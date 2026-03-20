@@ -197,8 +197,9 @@ class _EditProfileFormState extends State<_EditProfileForm> {
   late final TextEditingController _phoneController;
   late final TextEditingController _addressController;
   late final TextEditingController _imageUrlController;
-  
+
   bool _isUploading = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -380,7 +381,7 @@ class _EditProfileFormState extends State<_EditProfileForm> {
           ),
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: _saveProfile,
+            onPressed: _isLoading ? null : _saveProfile,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.deepOrange,
               foregroundColor: Colors.white,
@@ -389,9 +390,11 @@ class _EditProfileFormState extends State<_EditProfileForm> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: Text(
-              'Save Changes',
-              style: GoogleFonts.poppins(
+            child: _isLoading
+                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : Text(
+                    'Save Changes',
+                    style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
