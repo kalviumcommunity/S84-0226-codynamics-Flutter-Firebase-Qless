@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../providers/vendor_provider.dart';
 
 /// Screen for viewing and editing vendor profile
@@ -222,7 +223,7 @@ class _EditProfileFormState extends State<_EditProfileForm> {
 
     setState(() => _isLoading = true);
 
-    final provider = VendorProvider();
+    final provider = context.read<VendorProvider>();
     await provider.updateVendorProfile(
       shopName: _shopNameController.text.trim(),
       ownerName: _ownerNameController.text.trim(),

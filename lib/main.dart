@@ -4,6 +4,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:provider/provider.dart';
+import 'providers/vendor_provider.dart';
 import 'firebase_options.dart';
 import 'screens/auth/auth_screen.dart';
 import 'screens/admin/admin_dashboard.dart';
@@ -31,7 +33,14 @@ void main() async {
     }
   }
 
-  runApp(const QlessApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => VendorProvider()),
+      ],
+      child: const QlessApp(),
+    ),
+  );
 }
 
 class QlessApp extends StatelessWidget {
