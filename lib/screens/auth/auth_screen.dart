@@ -138,8 +138,6 @@ class _AuthScreenState extends State<AuthScreen>
   }
 
   Future<void> _signIn() async {
-    print('🔐 Signing in with role: $_selectedRole');
-    
     final credential = await _auth.signInWithEmailAndPassword(
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
@@ -147,8 +145,6 @@ class _AuthScreenState extends State<AuthScreen>
 
     final uid = credential.user?.uid;
     if (uid == null) return;
-
-    print('✅ Sign in successful, UID: $uid');
     
     // Notify parent immediately about selected role
     widget.onRoleSelected?.call(_selectedRole);
@@ -160,17 +156,12 @@ class _AuthScreenState extends State<AuthScreen>
         'email': _emailController.text.trim(),
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
-      
-      print('✅ Role saved to Firestore: $_selectedRole');
     } catch (e) {
-      print('⚠️ Could not update role in Firestore: $e');
       // Continue anyway - role is cached in memory
     }
   }
 
   Future<void> _signUp() async {
-    print('📝 Signing up with role: $_selectedRole');
-    
     final now = FieldValue.serverTimestamp();
 
     final credential = await _auth.createUserWithEmailAndPassword(
@@ -180,8 +171,6 @@ class _AuthScreenState extends State<AuthScreen>
 
     final uid = credential.user?.uid;
     if (uid == null) return;
-
-    print('✅ Sign up successful, UID: $uid');
     
     // Notify parent immediately about selected role
     widget.onRoleSelected?.call(_selectedRole);
@@ -194,10 +183,16 @@ class _AuthScreenState extends State<AuthScreen>
     };
 
     if (_selectedRole == 'vendor') {
+      final shopName = _shopNameController.text.trim();
+      final ownerName = _ownerNameController.text.trim();
+      
       userData.addAll({
-        'shopName': _shopNameController.text.trim(),
-        'ownerName': _ownerNameController.text.trim(),
+        'shopName': shopName,
+        'ownerName': ownerName,
         'isActive': true,
+        'phone': '',
+        'address': '',
+        'description': '',
       });
     } else {
       userData.addAll({
@@ -207,9 +202,7 @@ class _AuthScreenState extends State<AuthScreen>
 
     try {
       await _firestore.collection('users').doc(uid).set(userData);
-      print('✅ User data saved to Firestore');
     } catch (e) {
-      print('❌ Firestore write failed: $e');
       // Firestore write failed — delete the just-created Auth account so
       // the user can retry without getting "email-already-in-use".
       await credential.user?.delete();

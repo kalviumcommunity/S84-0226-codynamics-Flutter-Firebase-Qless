@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:qless/screens/auth/auth_screen.dart';
 import 'package:qless/screens/admin/admin_dashboard.dart';
 import 'package:qless/screens/responsive_home.dart';
+import 'package:qless/screens/customer/shop_menu_screen.dart';
+import 'package:qless/services/firestore_service.dart';
+import 'package:qless/screens/customer/data_seeder_util.dart';
+
+import 'package:qless/screens/customer/user_dashboard_screen.dart';
 
 class CustomerLandingPage extends StatelessWidget {
   final bool isAuthenticatedUser;
@@ -12,69 +18,6 @@ class CustomerLandingPage extends StatelessWidget {
     super.key,
     this.isAuthenticatedUser = false,
   });
-
-  static final List<Map<String, dynamic>> _foodOutlets = [
-    {
-      'name': 'Spice Garden',
-      'cuisine': 'Indian',
-      'speciality': 'Biryani & Curries',
-      'rating': 4.5,
-      'time': '20-30 min',
-      'icon': Icons.restaurant,
-      'color': Colors.orange,
-      'isOpen': true,
-    },
-    {
-      'name': 'Dragon Wok',
-      'cuisine': 'Chinese',
-      'speciality': 'Noodles & Manchurian',
-      'rating': 4.2,
-      'time': '15-25 min',
-      'icon': Icons.ramen_dining,
-      'color': Colors.red,
-      'isOpen': true,
-    },
-    {
-      'name': 'Burger Barn',
-      'cuisine': 'American',
-      'speciality': 'Burgers & Fries',
-      'rating': 4.7,
-      'time': '10-15 min',
-      'icon': Icons.lunch_dining,
-      'color': Colors.amber,
-      'isOpen': true,
-    },
-    {
-      'name': 'Chai & Snacks',
-      'cuisine': 'Street Food',
-      'speciality': 'Tea & Samosa',
-      'rating': 4.0,
-      'time': '5-10 min',
-      'icon': Icons.local_cafe,
-      'color': Colors.brown,
-      'isOpen': true,
-    },
-    {
-      'name': 'Pizza Planet',
-      'cuisine': 'Italian',
-      'speciality': 'Pizzas & Pasta',
-      'rating': 4.6,
-      'time': '25-35 min',
-      'icon': Icons.local_pizza,
-      'color': Colors.green,
-      'isOpen': false,
-    },
-    {
-      'name': 'Juice Junction',
-      'cuisine': 'Beverages',
-      'speciality': 'Fresh Juices & Shakes',
-      'rating': 4.3,
-      'time': '5-10 min',
-      'icon': Icons.local_drink,
-      'color': Colors.teal,
-      'isOpen': true,
-    },
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -161,6 +104,17 @@ class CustomerLandingPage extends StatelessWidget {
                   },
                   child: const Icon(Icons.admin_panel_settings),
                   tooltip: 'Admin Login',
+                ),
+                const SizedBox(height: 16),
+                FloatingActionButton.extended(
+                  heroTag: 'manage_data_btn',
+                  backgroundColor: Colors.deepOrange,
+                  foregroundColor: Colors.white,
+                  icon: const Icon(Icons.settings_applications),
+                  label: const Text('Manage Test Data'),
+                  onPressed: () {
+                    DataSeederUtil.showManagerDialog(context);
+                  },
                 ),
               ],
             ),
@@ -390,7 +344,10 @@ class CustomerLandingPage extends StatelessWidget {
         // Main CTA Button
         ElevatedButton(
           onPressed: () {
-            // TODO: Navigate to menu/order page
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const UserDashboardScreen()),
+            );
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.white,
@@ -468,7 +425,7 @@ class CustomerLandingPage extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            'Popular Food Outlets',
+            'Available Shops',
             style: GoogleFonts.poppins(
               fontSize: isWideScreen ? 32 : 26,
               fontWeight: FontWeight.w700,
@@ -477,7 +434,7 @@ class CustomerLandingPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Discover delicious street food near you',
+            'Live vendor data from Firebase',
             style: GoogleFonts.inter(
               fontSize: isWideScreen ? 18 : 15,
               color: Colors.grey.shade600,
@@ -486,19 +443,70 @@ class CustomerLandingPage extends StatelessWidget {
           ),
           SizedBox(height: isWideScreen ? 32 : 24),
 
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: childAspectRatio,
-            ),
-            itemCount: _foodOutlets.length,
-            itemBuilder: (context, index) {
-              final outlet = _foodOutlets[index];
-              return _buildOutletCard(context, outlet, isWideScreen);
+          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: FirestoreService.instance.vendorsStream(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              if (snapshot.hasError) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                      'Error: ${snapshot.error}',
+                      style: GoogleFonts.poppins(color: Colors.red),
+                  ),
+                );
+              }
+
+              final docs = snapshot.data?.docs ?? [];
+              if (docs.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'No shops available yet.',
+                    style: GoogleFonts.poppins(color: Colors.grey.shade700),
+                  ),
+                );
+              }
+
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: childAspectRatio,
+                ),
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                  final data = docs[index].data();
+                  final shopName = (data['shopName'] as String?)?.trim().isNotEmpty == true
+                      ? (data['shopName'] as String).trim()
+                      : ((data['ownerName'] as String?)?.trim().isNotEmpty == true
+                          ? (data['ownerName'] as String).trim()
+                          : 'Vendor');
+                  final subtitle = (data['description'] as String?)?.trim().isNotEmpty == true
+                      ? (data['description'] as String).trim()
+                      : 'Tap to browse items';
+                  final isOpen = data['isActive'] as bool? ?? true;
+
+                  return _buildOutletCard(
+                    context,
+                    vendorId: docs[index].id,
+                    shopName: shopName,
+                    subtitle: subtitle,
+                    isOpen: isOpen,
+                    colorIndex: index,
+                    isWideScreen: isWideScreen,
+                  );
+                },
+              );
             },
           ),
         ],
@@ -508,34 +516,47 @@ class CustomerLandingPage extends StatelessWidget {
 
   Widget _buildOutletCard(
     BuildContext context,
-    Map<String, dynamic> outlet,
-    bool isWideScreen,
+    {
+    required String vendorId,
+    required String shopName,
+    required String subtitle,
+    required bool isOpen,
+    required int colorIndex,
+    required bool isWideScreen,
+  }
   ) {
-    final Color outletColor = outlet['color'] as Color;
-    final bool isOpen = outlet['isOpen'] as bool;
+    const colors = [
+      Colors.deepOrange,
+      Colors.teal,
+      Colors.indigo,
+      Colors.green,
+      Colors.brown,
+      Colors.pink,
+    ];
+    const icons = [
+      Icons.storefront,
+      Icons.local_dining,
+      Icons.ramen_dining,
+      Icons.local_cafe,
+      Icons.lunch_dining,
+      Icons.restaurant,
+    ];
+
+    final outletColor = colors[colorIndex % colors.length];
+    final outletIcon = icons[colorIndex % icons.length];
 
     return GestureDetector(
       onTap: isOpen
           ? () {
-              // TODO: Navigate to outlet menu
-              ScaffoldMessenger.of(context)
-                ..clearSnackBars()
-                ..showSnackBar(
-                  SnackBar(
-                    content: Text('Opening ${outlet['name']}...'),
-                    backgroundColor: outletColor,
-                    behavior: SnackBarBehavior.floating,
-                    margin: const EdgeInsets.only(
-                      bottom: 16,
-                      left: 16,
-                      right: 16,
-                    ),
-                    duration: const Duration(seconds: 2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ShopMenuScreen(
+                    vendorId: vendorId,
+                    shopName: shopName,
                   ),
-                );
+                ),
+              );
             }
           : null,
       child: Container(
@@ -566,7 +587,7 @@ class CustomerLandingPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                  outlet['icon'] as IconData,
+                  outletIcon,
                   size: isWideScreen ? 36 : 28,
                   color: outletColor,
                 ),
@@ -583,7 +604,7 @@ class CustomerLandingPage extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            outlet['name'] as String,
+                            shopName,
                             style: TextStyle(
                               fontSize: isWideScreen ? 18 : 16,
                               fontWeight: FontWeight.bold,
@@ -616,7 +637,7 @@ class CustomerLandingPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      outlet['cuisine'] as String,
+                      isOpen ? 'Open now' : 'Currently unavailable',
                       style: TextStyle(
                         fontSize: isWideScreen ? 14 : 12,
                         color: Colors.grey.shade600,
@@ -624,7 +645,7 @@ class CustomerLandingPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      outlet['speciality'] as String,
+                      subtitle,
                       style: TextStyle(
                         fontSize: isWideScreen ? 13 : 11,
                         color: outletColor,
@@ -632,39 +653,6 @@ class CustomerLandingPage extends StatelessWidget {
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.star,
-                          size: 16,
-                          color: Colors.amber.shade600,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${outlet['rating']}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade800,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Icon(
-                          Icons.access_time,
-                          size: 14,
-                          color: Colors.grey.shade500,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          outlet['time'] as String,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),

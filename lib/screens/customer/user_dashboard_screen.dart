@@ -4,89 +4,182 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:qless/screens/responsive_home.dart';
 import 'package:qless/services/firestore_service.dart';
+import 'shop_menu_screen.dart';
+import 'user_profile_screen.dart';
 
-class UserDashboardScreen extends StatelessWidget {
+class UserDashboardScreen extends StatefulWidget {
   const UserDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final currentUser = FirebaseAuth.instance.currentUser;
+  State<UserDashboardScreen> createState() => _UserDashboardScreenState();
+}
 
-    return Scaffold(
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          FloatingActionButton.small(
-            heroTag: 'user_responsive_demo',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ResponsiveHome()),
-              );
+class _UserDashboardScreenState extends State<UserDashboardScreen> {
+  bool _isLoading = false;
+
+  Future<void> _seedMockShops(BuildContext context) async {
+    setState(() => _isLoading = true);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Seeding shops...')),
+    );
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final shops = [
+        {'role': 'vendor', 'shopName': 'Spice Garden', 'ownerName': 'Chef Raj', 'description': 'Authentic Indian Biryani & Curries', 'isActive': true, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()},
+        {'role': 'vendor', 'shopName': 'Dragon Wok', 'ownerName': 'Mei Lin', 'description': 'Delicious Chinese Noodles & Manchurian', 'isActive': true, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()},
+        {'role': 'vendor', 'shopName': 'Burger Barn', 'ownerName': 'John Doe', 'description': 'American Burgers & Crispy Fries', 'isActive': true, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()},
+        {'role': 'vendor', 'shopName': 'Chai & Snacks', 'ownerName': 'Amit', 'description': 'Hot Tea, Coffee & Fresh Samosas', 'isActive': true, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()},
+        {'role': 'vendor', 'shopName': 'Pizza Planet', 'ownerName': 'Mario', 'description': 'Italian Pizzas & Pasta', 'isActive': true, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()},
+      ];
+      
+      for (final shop in shops) {
+        // Only adding mock auth UID to users collection
+        final dummyUid = 'mock_${DateTime.now().millisecondsSinceEpoch}_${shop['shopName'].toString().replaceAll(" ", "")}';
+        await firestore.collection('users').doc(dummyUid).set(shop);
+
+        // Seed one dummy item per shop
+        await firestore.collection('menu_items').add({
+          'vendorId': dummyUid,
+          'name': 'Signature ${shop['shopName'].toString().split(' ').last}',
+          'description': 'Our famous bestselling item.',
+          'price': 150.0,
+          'category': 'Specials',
+          'imageUrl': '',
+          'isAvailable': true,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+      
+      if (context.mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✓ 5 dummy shops added successfully!')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error seeding: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteMockShops(BuildContext context) async {
+    setState(() => _isLoading = true);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Deleting dummy shops...')),
+    );
+    
+    try {
+      final firestore = FirebaseFirestore.instance;
+      
+      // Delete mock users
+      final usersQuery = await firestore.collection('users').where('role', isEqualTo: 'vendor').get();
+      int deletedUsers = 0;
+      for (final doc in usersQuery.docs) {
+        if (doc.id.startsWith('mock_')) {
+          await doc.reference.delete();
+          deletedUsers++;
+        }
+      }
+
+      // Delete mock items
+      final itemsQuery = await firestore.collection('menu_items').get();
+      int deletedItems = 0;
+      for (final doc in itemsQuery.docs) {
+        final vendorId = doc.data()['vendorId'] as String?;
+        if (vendorId != null && vendorId.startsWith('mock_')) {
+          await doc.reference.delete();
+          deletedItems++;
+        }
+      }
+
+      if (context.mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('✓ Deleted $deletedUsers shops and $deletedItems items')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting: $e')),
+        );
+      }
+    }
+  }
+
+  void _showDummyDataMenu(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Manage Dummy Data'),
+        content: const Text('Add or remove test shops for development.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton.icon(
+            onPressed: _isLoading ? null : () {
+              Navigator.pop(ctx);
+              _deleteMockShops(context);
             },
-            child: const Icon(Icons.aspect_ratio),
-            tooltip: 'Show Responsive Demo',
+            icon: const Icon(Icons.delete, color: Colors.red),
+            label: const Text('Delete Dummy Shops', style: TextStyle(color: Colors.red)),
+          ),
+          ElevatedButton.icon(
+            onPressed: _isLoading ? null : () {
+              Navigator.pop(ctx);
+              _seedMockShops(context);
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Add Dummy Shops'),
           ),
         ],
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Qless',
+          'Available Shops',
           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.deepOrange,
         foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.account_circle_outlined),
-            tooltip: 'Profile',
-            onPressed: () {
-              showModalBottomSheet<void>(
-                context: context,
-                showDragHandle: true,
-                builder: (context) {
-                  return SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Profile',
-                            style: GoogleFonts.poppins(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            currentUser?.email ?? 'Signed in user',
-                            style: GoogleFonts.poppins(
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: () async {
-                                Navigator.pop(context);
-                                await FirebaseAuth.instance.signOut();
-                              },
-                              icon: const Icon(Icons.logout),
-                              label: const Text('Logout'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+            )
+          else ...[
+            IconButton(
+              icon: const Icon(Icons.storage),
+              tooltip: 'Manage Dummy Data',
+              onPressed: () => _showDummyDataMenu(context),
+            ),
+            IconButton(
+              icon: const Icon(Icons.account_circle_outlined),
+              tooltip: 'Profile',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const UserProfileScreen()),
+                );
+              },
+            ),
+          ]
         ],
       ),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -99,194 +192,102 @@ class UserDashboardScreen extends StatelessWidget {
           if (vendorsSnapshot.hasError) {
             return Center(
               child: Text(
-                'Unable to load vendors right now.',
+                'Error loading shops: ${vendorsSnapshot.error}',
                 style: GoogleFonts.poppins(color: Colors.red),
               ),
             );
           }
 
           final vendorDocs = vendorsSnapshot.data?.docs ?? [];
-          final vendorById = <String, String>{};
-
-          for (final doc in vendorDocs) {
+          final activeVendors = vendorDocs.where((doc) {
             final data = doc.data();
-            final displayName = (data['shopName'] as String?)?.trim().isNotEmpty == true
-                ? (data['shopName'] as String).trim()
-                : ((data['ownerName'] as String?)?.trim().isNotEmpty == true
-                    ? (data['ownerName'] as String).trim()
-                    : 'Vendor');
-            vendorById[doc.id] = displayName;
+            return data['isActive'] as bool? ?? true;
+          }).toList();
+
+          if (activeVendors.isEmpty) {
+             return Center(
+                child: Text(
+                  'No shops available right now.',
+                  style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 16),
+                ),
+              );
           }
 
-          return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-            stream: FirestoreService.instance.menuItemsStream(),
-            builder: (context, productsSnapshot) {
-              if (productsSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: activeVendors.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 16),
+            itemBuilder: (context, index) {
+              final doc = activeVendors[index];
+              final data = doc.data();
+              
+              final shopName = (data['shopName'] as String?)?.trim().isNotEmpty == true
+                  ? (data['shopName'] as String).trim()
+                  : ((data['ownerName'] as String?)?.trim().isNotEmpty == true
+                      ? (data['ownerName'] as String).trim()
+                      : 'Vendor');
+              
+              final description = data['description'] as String? ?? 'Tap to view menu';
+              final imageUrl = data['imageUrl'] as String? ?? '';
 
-              if (productsSnapshot.hasError) {
-                return Center(
-                  child: Text(
-                    'Unable to load products right now.',
-                    style: GoogleFonts.poppins(color: Colors.red),
+              return Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ShopMenuScreen(
+                          vendorId: doc.id,
+                          shopName: shopName,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (imageUrl.isNotEmpty)
+                        ClipRRect(
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                          child: Image.network(
+                            imageUrl,
+                            height: 140,
+                            fit: BoxFit.cover,
+                            errorBuilder: (ctx, err, trace) => _buildPlaceholder(),
+                          ),
+                        )
+                      else
+                        _buildPlaceholder(),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              shopName,
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              description,
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: Colors.grey[700],
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                );
-              }
-
-              final products = productsSnapshot.data?.docs ?? [];
-
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Welcome${currentUser?.email != null ? ', ${currentUser!.email}' : ''} 👋',
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Browse all vendors and their products.',
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: Colors.grey[700],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Home Options',
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        _QuickOptionChip(
-                          icon: Icons.fastfood,
-                          label: 'Food Outlets',
-                          onTap: () {
-                            ScaffoldMessenger.of(context)
-                              ..clearSnackBars()
-                              ..showSnackBar(
-                                const SnackBar(content: Text('Scroll below for vendors and products.')),
-                              );
-                          },
-                        ),
-                        _QuickOptionChip(
-                          icon: Icons.aspect_ratio,
-                          label: 'Responsive Demo',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const ResponsiveHome()),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Vendors',
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    if (vendorDocs.isEmpty)
-                      Text(
-                        'No vendors found.',
-                        style: GoogleFonts.poppins(color: Colors.grey[600]),
-                      )
-                    else
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: vendorDocs.map((doc) {
-                          final vendorName = vendorById[doc.id] ?? 'Vendor';
-                          return Chip(
-                            label: Text(
-                              vendorName,
-                              style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
-                            ),
-                            avatar: const Icon(Icons.store_mall_directory, size: 18),
-                          );
-                        }).toList(),
-                      ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Products',
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    if (products.isEmpty)
-                      Text(
-                        'No products available yet.',
-                        style: GoogleFonts.poppins(color: Colors.grey[600]),
-                      )
-                    else
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: products.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          final productData = products[index].data();
-                          final productName = productData['name'] as String? ?? 'Unnamed Product';
-                          final category = productData['category'] as String? ?? 'Uncategorized';
-                          final price = (productData['price'] as num?)?.toDouble() ?? 0;
-                          final isAvailable = productData['isAvailable'] as bool? ?? true;
-                          final vendorId = productData['vendorId'] as String? ?? '';
-                          final vendorName = vendorById[vendorId] ?? 'Unknown Vendor';
-
-                          return Card(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: isAvailable
-                                    ? Colors.deepOrange.shade100
-                                    : Colors.grey.shade200,
-                                child: Icon(
-                                  Icons.fastfood,
-                                  color: isAvailable ? Colors.deepOrange : Colors.grey,
-                                ),
-                              ),
-                              title: Text(
-                                productName,
-                                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                              ),
-                              subtitle: Text(
-                                '$vendorName • $category',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12,
-                                  color: Colors.grey[700],
-                                ),
-                              ),
-                              trailing: Text(
-                                '₹${price.toStringAsFixed(2)}',
-                                style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.deepOrange,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                  ],
                 ),
               );
             },
@@ -295,28 +296,18 @@ class UserDashboardScreen extends StatelessWidget {
       ),
     );
   }
-}
 
-class _QuickOptionChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _QuickOptionChip({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ActionChip(
-      avatar: Icon(icon, size: 18),
-      label: Text(
-        label,
-        style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+  Widget _buildPlaceholder() {
+    return Container(
+      height: 140,
+      decoration: const BoxDecoration(
+        color: Color(0xFFFFF3E0),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      onPressed: onTap,
+      child: const Center(
+        child: Icon(Icons.storefront, size: 56, color: Colors.deepOrange),
+      ),
     );
   }
 }
+

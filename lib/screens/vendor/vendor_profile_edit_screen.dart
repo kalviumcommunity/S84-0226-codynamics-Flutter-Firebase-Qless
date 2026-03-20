@@ -1,9 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../providers/vendor_provider.dart';
+import '../../services/storage_service.dart';
 
 /// Screen for viewing and editing vendor profile
 class VendorProfileEditScreen extends StatefulWidget {
@@ -194,7 +197,8 @@ class _EditProfileFormState extends State<_EditProfileForm> {
   late final TextEditingController _phoneController;
   late final TextEditingController _addressController;
   late final TextEditingController _imageUrlController;
-  bool _isLoading = false;
+  
+  bool _isUploading = false;
 
   @override
   void initState() {
@@ -218,32 +222,76 @@ class _EditProfileFormState extends State<_EditProfileForm> {
     super.dispose();
   }
 
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    
+    if (pickedFile == null) return;
+
+    setState(() => _isUploading = true);
+    try {
+      final downloadUrl = await StorageService.instance.uploadImage(
+        File(pickedFile.path),
+        'vendor_profiles',
+      );
+      if (downloadUrl != null) {
+        setState(() {
+          _imageUrlController.text = downloadUrl;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Image upload failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
+    }
+  }
+
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
-    final provider = context.read<VendorProvider>();
-    await provider.updateVendorProfile(
-      shopName: _shopNameController.text.trim(),
-      ownerName: _ownerNameController.text.trim(),
-      description: _descriptionController.text.trim(),
-      phone: _phoneController.text.trim(),
-      address: _addressController.text.trim(),
-      imageUrl: _imageUrlController.text.trim(),
-    );
-
-    if (mounted) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile updated successfully!'),
-          backgroundColor: Colors.green,
-        ),
+    try {
+      final provider = context.read<VendorProvider>();
+      await provider.updateVendorProfile(
+        shopName: _shopNameController.text.trim(),
+        ownerName: _ownerNameController.text.trim(),
+        description: _descriptionController.text.trim(),
+        phone: _phoneController.text.trim(),
+        address: _addressController.text.trim(),
+        imageUrl: _imageUrlController.text.trim(),
       );
-      // Exit edit mode
-      final parentState = context.findAncestorStateOfType<_VendorProfileEditScreenState>();
-      parentState?.setState(() => parentState._isEditing = false);
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile updated successfully!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        // Exit edit mode
+        final parentState = context.findAncestorStateOfType<_VendorProfileEditScreenState>();
+        parentState?.setState(() => parentState._isEditing = false);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating profile: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
@@ -304,17 +352,35 @@ class _EditProfileFormState extends State<_EditProfileForm> {
             maxLines: 2,
           ),
           const SizedBox(height: 16),
-          TextFormField(
-            controller: _imageUrlController,
-            decoration: InputDecoration(
-              labelText: 'Profile Image URL',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              prefixIcon: const Icon(Icons.image),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _imageUrlController,
+                  decoration: InputDecoration(
+                    labelText: 'Profile Image URL',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: const Icon(Icons.image),
+                    hintText: 'e.g., https://example.com/image.jpg',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed: _isUploading ? null : _pickImage,
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                ),
+                child: _isUploading
+                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.upload_file),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: _isLoading ? null : _saveProfile,
+            onPressed: _saveProfile,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.deepOrange,
               foregroundColor: Colors.white,
@@ -323,22 +389,13 @@ class _EditProfileFormState extends State<_EditProfileForm> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: _isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Text(
-                    'Save Changes',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+            child: Text(
+              'Save Changes',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),

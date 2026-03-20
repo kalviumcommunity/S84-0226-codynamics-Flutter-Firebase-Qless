@@ -8,17 +8,14 @@ class RoleCache {
 
   void setRole(String uid, String role) {
     _cache[uid] = role;
-    print('💾 Role cached: $uid -> $role');
   }
 
   String? getRole(String uid) {
     final role = _cache[uid];
-    print('📖 Role from cache: $uid -> $role');
     return role;
   }
 
   void clear() {
     _cache.clear();
-    print('🗑️ Role cache cleared');
   }
 }
