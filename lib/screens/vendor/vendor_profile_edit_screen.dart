@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../providers/vendor_provider.dart';
+import '../../services/storage_service.dart';
 
 /// Screen for viewing and editing vendor profile
 class VendorProfileEditScreen extends StatefulWidget {
@@ -193,6 +196,8 @@ class _EditProfileFormState extends State<_EditProfileForm> {
   late final TextEditingController _phoneController;
   late final TextEditingController _addressController;
   late final TextEditingController _imageUrlController;
+  
+  bool _isUploading = false;
 
   @override
   void initState() {
@@ -214,6 +219,36 @@ class _EditProfileFormState extends State<_EditProfileForm> {
     _addressController.dispose();
     _imageUrlController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    
+    if (pickedFile == null) return;
+
+    setState(() => _isUploading = true);
+    try {
+      final downloadUrl = await StorageService.instance.uploadImage(
+        File(pickedFile.path),
+        'vendor_profiles',
+      );
+      if (downloadUrl != null) {
+        setState(() {
+          _imageUrlController.text = downloadUrl;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Image upload failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
+    }
   }
 
   Future<void> _saveProfile() async {
@@ -313,21 +348,31 @@ class _EditProfileFormState extends State<_EditProfileForm> {
             maxLines: 2,
           ),
           const SizedBox(height: 16),
-          TextFormField(
-            controller: _imageUrlController,
-            decoration: InputDecoration(
-              labelText: 'Profile Image URL',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              prefixIcon: const Icon(Icons.image),
-              hintText: 'e.g., https://example.com/image.jpg',
-            ),
-            validator: (v) {
-              if (v?.trim().isEmpty ?? true) return null; // Optional field
-              if (!v!.startsWith('http://') && !v.startsWith('https://')) {
-                return 'Must be a valid URL starting with http:// or https://';
-              }
-              return null;
-            },
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _imageUrlController,
+                  decoration: InputDecoration(
+                    labelText: 'Profile Image URL',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: const Icon(Icons.image),
+                    hintText: 'e.g., https://example.com/image.jpg',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed: _isUploading ? null : _pickImage,
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                ),
+                child: _isUploading
+                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.upload_file),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
           ElevatedButton(

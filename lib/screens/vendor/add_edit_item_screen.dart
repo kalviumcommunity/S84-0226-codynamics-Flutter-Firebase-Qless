@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../models/menu_item_model.dart';
 import '../../providers/vendor_provider.dart';
+import '../../services/storage_service.dart';
 
 /// Screen for adding or editing a menu item
 class AddEditItemScreen extends StatefulWidget {
@@ -22,8 +25,39 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   final _categoryController = TextEditingController();
   final _imageUrlController = TextEditingController();
   bool _isAvailable = true;
+  bool _isUploading = false;
 
   bool get _isEditing => widget.item != null;
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    
+    if (pickedFile == null) return;
+
+    setState(() => _isUploading = true);
+    try {
+      final downloadUrl = await StorageService.instance.uploadImage(
+        File(pickedFile.path),
+        'menu_items',
+      );
+      if (downloadUrl != null) {
+        setState(() {
+          _imageUrlController.text = downloadUrl;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Image upload failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
+    }
+  }
 
   Future<void> _saveItem() async {
     if (!_formKey.currentState!.validate()) return;
@@ -221,21 +255,31 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
               validator: (v) => v?.trim().isEmpty ?? true ? 'Required' : null,
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _imageUrlController,
-              decoration: InputDecoration(
-                labelText: 'Image URL',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                prefixIcon: const Icon(Icons.image),
-                hintText: 'e.g., https://example.com/image.jpg',
-              ),
-              validator: (v) {
-                if (v?.trim().isEmpty ?? true) return null; // Optional field
-                if (!v!.startsWith('http://') && !v.startsWith('https://')) {
-                  return 'Must be a valid URL starting with http:// or https://';
-                }
-                return null;
-              },
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _imageUrlController,
+                    decoration: InputDecoration(
+                      labelText: 'Image URL',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: const Icon(Icons.image),
+                      hintText: 'e.g., https://example.com/image.jpg',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: _isUploading ? null : _pickImage,
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                  ),
+                  child: _isUploading
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.upload_file),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             SwitchListTile(
