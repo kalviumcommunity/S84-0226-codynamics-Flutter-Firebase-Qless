@@ -5,15 +5,16 @@ enum OrderStatus {
   pending,    // Order placed, awaiting vendor acceptance
   cooking,    // Order accepted and being prepared
   ready,      // Order ready for pickup/delivery
-  completed   // Order completed
+  completed,  // Order completed
+  rejected    // Order has been rejected by the vendor
 }
 
 /// Represents a line item inside the `orders/{id}/items` subcollection.
 class OrderItemModel {
   final String id;
   final String menuItemId;
-  final String name;       // denormalised snapshot of item name at order time
-  final double price;      // denormalised snapshot of price at order time
+  final String name;
+  final double price;
   final int quantity;
 
   const OrderItemModel({
@@ -24,11 +25,9 @@ class OrderItemModel {
     required this.quantity,
   });
 
-  factory OrderItemModel.fromFirestore(
-      DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data()!;
+  factory OrderItemModel.fromMap(Map<String, dynamic> data) {
     return OrderItemModel(
-      id: doc.id,
+      id: data['id'] as String? ?? '',
       menuItemId: data['menuItemId'] as String? ?? '',
       name: data['name'] as String? ?? '',
       price: (data['price'] as num?)?.toDouble() ?? 0.0,
@@ -36,7 +35,8 @@ class OrderItemModel {
     );
   }
 
-  Map<String, dynamic> toFirestore() => {
+  Map<String, dynamic> toMap() => {
+        'id': id,
         'menuItemId': menuItemId,
         'name': name,
         'price': price,
@@ -45,36 +45,38 @@ class OrderItemModel {
 }
 
 /// Represents an order document in the `orders` collection.
-/// Line items are stored in the `items` subcollection.
 class OrderModel {
   final String id;
   final String vendorId;
-  final int tokenNumber;
+  final String token;
   final String customerName;
   final OrderStatus status;
   final double totalAmount;
   final bool isPaid;
+  final List<OrderItemModel> items;
   final DateTime createdAt;
   final DateTime updatedAt;
 
   const OrderModel({
     required this.id,
     required this.vendorId,
-    required this.tokenNumber,
+    required this.token,
     this.customerName = '',
     this.status = OrderStatus.pending,
     required this.totalAmount,
     this.isPaid = false,
+    this.items = const [],
     required this.createdAt,
     required this.updatedAt,
   });
 
   factory OrderModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
+    final itemsData = data['items'] as List<dynamic>? ?? [];
     return OrderModel(
       id: doc.id,
       vendorId: data['vendorId'] as String? ?? '',
-      tokenNumber: data['tokenNumber'] as int? ?? 0,
+      token: data['token']?.toString() ?? '',
       customerName: data['customerName'] as String? ?? '',
       status: OrderStatus.values.firstWhere(
         (s) => s.name == (data['status'] as String? ?? 'pending'),
@@ -82,6 +84,7 @@ class OrderModel {
       ),
       totalAmount: (data['totalAmount'] as num?)?.toDouble() ?? 0.0,
       isPaid: data['isPaid'] as bool? ?? false,
+      items: itemsData.map((e) => OrderItemModel.fromMap(e as Map<String, dynamic>)).toList(),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -89,11 +92,12 @@ class OrderModel {
 
   Map<String, dynamic> toFirestore() => {
         'vendorId': vendorId,
-        'tokenNumber': tokenNumber,
+        'token': token,
         'customerName': customerName,
         'status': status.name,
         'totalAmount': totalAmount,
         'isPaid': isPaid,
+        'items': items.map((e) => e.toMap()).toList(),
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       };

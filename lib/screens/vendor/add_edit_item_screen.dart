@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/menu_item_model.dart';
 import '../../providers/vendor_provider.dart';
+import '../../services/storage_service.dart';
 
 /// Screen for adding or editing a menu item
 class AddEditItemScreen extends StatefulWidget {
@@ -20,8 +24,11 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _categoryController = TextEditingController();
-  final _imageUrlController = TextEditingController();
+  
   bool _isAvailable = true;
+  String _imageUrl = '';
+  File? _selectedImage;
+  bool _isUploading = false;
 
   bool get _isEditing => widget.item != null;
 
@@ -33,7 +40,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
       _descriptionController.text = widget.item!.description;
       _priceController.text = widget.item!.price.toString();
       _categoryController.text = widget.item!.category;
-      _imageUrlController.text = widget.item!.imageUrl;
+      _imageUrl = widget.item!.imageUrl;
       _isAvailable = widget.item!.isAvailable;
     }
   }
@@ -44,16 +51,37 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     _descriptionController.dispose();
     _priceController.dispose();
     _categoryController.dispose();
-    _imageUrlController.dispose();
     super.dispose();
   }
 
-  void _saveItem() {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
+    }
+  }
 
-    final provider = VendorProvider();
+  Future<void> _saveItem() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    setState(() => _isUploading = true);
 
     try {
+      if (_selectedImage != null) {
+        final vendorId = FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
+        final storage = StorageService.instance;
+        final fileName = 'item_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        _imageUrl = await storage.uploadImage(
+          _selectedImage!, 
+          'vendors/$vendorId/items/$fileName'
+        ) ?? '';
+      }
+
+      final provider = VendorProvider();
+
       if (_isEditing) {
         provider.updateMenuItem(
           itemId: widget.item!.id,
@@ -61,7 +89,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
           description: _descriptionController.text.trim(),
           price: double.parse(_priceController.text.trim()),
           category: _categoryController.text.trim(),
-          imageUrl: _imageUrlController.text.trim(),
+          imageUrl: _imageUrl,
           isAvailable: _isAvailable,
         ); // Fire and forget
       } else {
@@ -70,26 +98,34 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
           description: _descriptionController.text.trim(),
           price: double.parse(_priceController.text.trim()),
           category: _categoryController.text.trim(),
-          imageUrl: _imageUrlController.text.trim(),
+          imageUrl: _imageUrl,
           isAvailable: _isAvailable,
         ); // Fire and forget
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_isEditing ? 'Item updated!' : 'Item added!'),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_isEditing ? 'Item updated!' : 'Item added!'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        Navigator.pop(context);
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error processing request: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error processing request: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
     }
   }
 
@@ -206,24 +242,47 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
               validator: (v) => v?.trim().isEmpty ?? true ? 'Required' : null,
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _imageUrlController,
-              decoration: InputDecoration(
-                labelText: 'Image URL',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                prefixIcon: const Icon(Icons.image),
-                hintText: 'https://example.com/image.jpg',
-              ),
-              validator: (v) {
-                if (v != null && v.trim().isNotEmpty) {
-                  final uri = Uri.tryParse(v.trim());
-                  if (uri == null || !uri.isAbsolute) {
-                    return 'Please enter a valid URL';
-                  }
-                }
-                return null;
-              },
+            
+            // Image Picker Section
+            Text(
+              'Item Image',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 16),
             ),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: _pickImage,
+              child: Container(
+                height: 150,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[400]!),
+                ),
+                child: _selectedImage != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(_selectedImage!, fit: BoxFit.cover),
+                      )
+                    : _imageUrl.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(_imageUrl, fit: BoxFit.cover),
+                          )
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_a_photo, size: 40, color: Colors.grey[600]),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Tap to choose image',
+                                style: GoogleFonts.poppins(color: Colors.grey[600]),
+                              ),
+                            ],
+                          ),
+              ),
+            ),
+            
             const SizedBox(height: 16),
             SwitchListTile(
               title: Text('Available', style: GoogleFonts.poppins()),
@@ -236,7 +295,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _saveItem,
+              onPressed: _isUploading ? null : _saveItem,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.deepOrange,
                 foregroundColor: Colors.white,
@@ -245,13 +304,22 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: Text(
-                _isEditing ? 'Update Item' : 'Add Item',
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              child: _isUploading
+                  ? const SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Text(
+                      _isEditing ? 'Update Item' : 'Add Item',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
             ),
           ],
         ),

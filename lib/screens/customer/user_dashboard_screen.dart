@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:qless/screens/responsive_home.dart';
 import 'package:qless/services/firestore_service.dart';
+import 'shop_menu_screen.dart';
+import 'user_profile_screen.dart';
 
 class UserDashboardScreen extends StatelessWidget {
   const UserDashboardScreen({super.key});
@@ -42,48 +44,9 @@ class UserDashboardScreen extends StatelessWidget {
             icon: const Icon(Icons.account_circle_outlined),
             tooltip: 'Profile',
             onPressed: () {
-              showModalBottomSheet<void>(
-                context: context,
-                showDragHandle: true,
-                builder: (context) {
-                  return SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Profile',
-                            style: GoogleFonts.poppins(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            currentUser?.email ?? 'Signed in user',
-                            style: GoogleFonts.poppins(
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: () async {
-                                Navigator.pop(context);
-                                await FirebaseAuth.instance.signOut();
-                              },
-                              icon: const Icon(Icons.logout),
-                              label: const Text('Logout'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const UserProfileScreen()),
               );
             },
           ),
@@ -212,12 +175,25 @@ class UserDashboardScreen extends StatelessWidget {
                         runSpacing: 10,
                         children: vendorDocs.map((doc) {
                           final vendorName = vendorById[doc.id] ?? 'Vendor';
-                          return Chip(
-                            label: Text(
-                              vendorName,
-                              style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                          return InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ShopMenuScreen(
+                                    vendorId: doc.id,
+                                    shopName: vendorName,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Chip(
+                              label: Text(
+                                vendorName,
+                                style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                              ),
+                              avatar: const Icon(Icons.store_mall_directory, size: 18),
                             ),
-                            avatar: const Icon(Icons.store_mall_directory, size: 18),
                           );
                         }).toList(),
                       ),
