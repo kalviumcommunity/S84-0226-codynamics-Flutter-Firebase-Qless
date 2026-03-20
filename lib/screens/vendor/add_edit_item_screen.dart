@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/menu_item_model.dart';
@@ -21,7 +22,6 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   final _categoryController = TextEditingController();
   final _imageUrlController = TextEditingController();
   bool _isAvailable = true;
-  bool _isLoading = false;
 
   bool get _isEditing => widget.item != null;
 
@@ -48,16 +48,14 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     super.dispose();
   }
 
-  Future<void> _saveItem() async {
+  void _saveItem() {
     if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
 
     final provider = VendorProvider();
 
     try {
       if (_isEditing) {
-        await provider.updateMenuItem(
+        provider.updateMenuItem(
           itemId: widget.item!.id,
           name: _nameController.text.trim(),
           description: _descriptionController.text.trim(),
@@ -65,42 +63,37 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
           category: _categoryController.text.trim(),
           imageUrl: _imageUrlController.text.trim(),
           isAvailable: _isAvailable,
-        );
+        ); // Fire and forget
       } else {
-        await provider.addMenuItem(
+        provider.addMenuItem(
           name: _nameController.text.trim(),
           description: _descriptionController.text.trim(),
           price: double.parse(_priceController.text.trim()),
           category: _categoryController.text.trim(),
           imageUrl: _imageUrlController.text.trim(),
           isAvailable: _isAvailable,
-        );
+        ); // Fire and forget
       }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_isEditing ? 'Item updated!' : 'Item added!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context);
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_isEditing ? 'Item updated!' : 'Item added!'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      Navigator.pop(context);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error processing request: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
-  Future<void> _deleteItem() async {
+  void _deleteItem() async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -125,15 +118,15 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
 
     if (confirm != true) return;
 
-    setState(() => _isLoading = true);
     final provider = VendorProvider();
-    await provider.deleteMenuItem(widget.item!.id);
+    provider.deleteMenuItem(widget.item!.id); // Fire and forget
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Item deleted'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 2),
         ),
       );
       Navigator.pop(context);
@@ -195,7 +188,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
               keyboardType: TextInputType.number,
               validator: (v) {
                 if (v?.trim().isEmpty ?? true) return 'Required';
-                if (double.tryParse(v!) == null) return 'Invalid price';
+                final price = double.tryParse(v!);
+                if (price == null) return 'Invalid price';
+                if (price < 0) return 'Price cannot be negative';
                 return null;
               },
             ),
@@ -219,6 +214,15 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                 prefixIcon: const Icon(Icons.image),
                 hintText: 'https://example.com/image.jpg',
               ),
+              validator: (v) {
+                if (v != null && v.trim().isNotEmpty) {
+                  final uri = Uri.tryParse(v.trim());
+                  if (uri == null || !uri.isAbsolute) {
+                    return 'Please enter a valid URL';
+                  }
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 16),
             SwitchListTile(
@@ -232,7 +236,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _isLoading ? null : _saveItem,
+              onPressed: _saveItem,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.deepOrange,
                 foregroundColor: Colors.white,
@@ -241,22 +245,13 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Text(
-                      _isEditing ? 'Update Item' : 'Add Item',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+              child: Text(
+                _isEditing ? 'Update Item' : 'Add Item',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ],
         ),

@@ -51,6 +51,7 @@ class VendorProvider extends ChangeNotifier {
       });
     } catch (e) {
       _setError('Failed to add item: $e');
+      rethrow;
     } finally {
       _setLoading(false);
     }
@@ -81,6 +82,7 @@ class VendorProvider extends ChangeNotifier {
       await _db.collection('menu_items').doc(itemId).update(updates);
     } catch (e) {
       _setError('Failed to update item: $e');
+      rethrow;
     } finally {
       _setLoading(false);
     }
@@ -94,6 +96,7 @@ class VendorProvider extends ChangeNotifier {
       });
     } catch (e) {
       _setError('Failed to toggle availability: $e');
+      rethrow;
     }
   }
 
@@ -104,6 +107,7 @@ class VendorProvider extends ChangeNotifier {
       await _db.collection('menu_items').doc(itemId).delete();
     } catch (e) {
       _setError('Failed to delete item: $e');
+      rethrow;
     } finally {
       _setLoading(false);
     }
@@ -119,6 +123,7 @@ class VendorProvider extends ChangeNotifier {
       });
     } catch (e) {
       _setError('Failed to update order status: $e');
+      rethrow;
     }
   }
 
