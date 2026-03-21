@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:qless/screens/auth/auth_screen.dart';
 import 'package:qless/screens/admin/admin_dashboard.dart';
 import 'package:qless/screens/responsive_home.dart';
+import 'package:qless/screens/customer/vendor_menu_screen.dart';
 
-class CustomerLandingPage extends StatelessWidget {
+class CustomerLandingPage extends StatefulWidget {
   final bool isAuthenticatedUser;
 
   const CustomerLandingPage({
@@ -13,76 +15,34 @@ class CustomerLandingPage extends StatelessWidget {
     this.isAuthenticatedUser = false,
   });
 
-  static final List<Map<String, dynamic>> _foodOutlets = [
-    {
-      'name': 'Spice Garden',
-      'cuisine': 'Indian',
-      'speciality': 'Biryani & Curries',
-      'rating': 4.5,
-      'time': '20-30 min',
-      'icon': Icons.restaurant,
-      'color': Colors.orange,
-      'isOpen': true,
-    },
-    {
-      'name': 'Dragon Wok',
-      'cuisine': 'Chinese',
-      'speciality': 'Noodles & Manchurian',
-      'rating': 4.2,
-      'time': '15-25 min',
-      'icon': Icons.ramen_dining,
-      'color': Colors.red,
-      'isOpen': true,
-    },
-    {
-      'name': 'Burger Barn',
-      'cuisine': 'American',
-      'speciality': 'Burgers & Fries',
-      'rating': 4.7,
-      'time': '10-15 min',
-      'icon': Icons.lunch_dining,
-      'color': Colors.amber,
-      'isOpen': true,
-    },
-    {
-      'name': 'Chai & Snacks',
-      'cuisine': 'Street Food',
-      'speciality': 'Tea & Samosa',
-      'rating': 4.0,
-      'time': '5-10 min',
-      'icon': Icons.local_cafe,
-      'color': Colors.brown,
-      'isOpen': true,
-    },
-    {
-      'name': 'Pizza Planet',
-      'cuisine': 'Italian',
-      'speciality': 'Pizzas & Pasta',
-      'rating': 4.6,
-      'time': '25-35 min',
-      'icon': Icons.local_pizza,
-      'color': Colors.green,
-      'isOpen': false,
-    },
-    {
-      'name': 'Juice Junction',
-      'cuisine': 'Beverages',
-      'speciality': 'Fresh Juices & Shakes',
-      'rating': 4.3,
-      'time': '5-10 min',
-      'icon': Icons.local_drink,
-      'color': Colors.teal,
-      'isOpen': true,
-    },
-  ];
+  @override
+  State<CustomerLandingPage> createState() => _CustomerLandingPageState();
+}
+
+class _CustomerLandingPageState extends State<CustomerLandingPage> {
+  int _selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
+    // Define pages for each tab
+    final List<Widget> pages = [
+      _buildHomePage(context),
+      _buildOrdersPage(context),
+      _buildNotificationsPage(context),
+      _buildProfilePage(context),
+    ];
+
     return Scaffold(
-      appBar: isAuthenticatedUser
+      appBar: widget.isAuthenticatedUser
           ? AppBar(
               title: Text(
-                'Qless',
+                _selectedIndex == 0
+                    ? 'Qless'
+                    : _selectedIndex == 1
+                        ? 'My Orders'
+                        : _selectedIndex == 2
+                            ? 'Notifications'
+                            : 'Profile',
                 style: GoogleFonts.righteous(
                   fontSize: 28,
                   fontWeight: FontWeight.w400,
@@ -90,108 +50,364 @@ class CustomerLandingPage extends StatelessWidget {
                 ),
               ),
               actions: [
-                IconButton(
-                  onPressed: () => _showProfileSheet(context),
-                  icon: const Icon(Icons.account_circle_outlined),
-                  tooltip: 'Profile',
-                ),
+                if (_selectedIndex == 0)
+                  IconButton(
+                    onPressed: () => _showProfileSheet(context),
+                    icon: const Icon(Icons.account_circle_outlined),
+                    tooltip: 'Profile',
+                  ),
               ],
             )
           : null,
-      floatingActionButton: isAuthenticatedUser
-          ? null
-          : Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
+      body: SafeArea(
+        child: pages[_selectedIndex],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.deepOrange,
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.receipt_long),
+            label: 'Orders',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications),
+            label: 'Notifications',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHomePage(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWideScreen = constraints.maxWidth > 600;
+        final isDesktop = constraints.maxWidth > 900;
+
+        return SingleChildScrollView(
+          child: Column(
+            children: [
+              // Hero Section
+              _buildHeroSection(context, isWideScreen, isDesktop),
+
+              // Approved Vendors Section
+              _buildApprovedVendorsSection(context, isWideScreen, isDesktop),
+
+              // Features Section
+              _buildFeaturesSection(context, isWideScreen, isDesktop),
+
+              // How It Works Section
+              _buildHowItWorksSection(context, isWideScreen, isDesktop),
+
+              // CTA Section
+              _buildCTASection(context, isWideScreen),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOrdersPage(BuildContext context) {
+    if (!widget.isAuthenticatedUser) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.receipt_long_outlined,
+              size: 80,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Sign in to view orders',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AuthScreen(
+                      onAuthSuccess: () {
+                        // Navigation handled by main.dart
+                      },
+                    ),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+              ),
+              child: const Text('Sign In'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('orders')
+          .where('userId', isEqualTo: userId)
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                FloatingActionButton.small(
-                  heroTag: 'logout_btn',
-                  backgroundColor: Colors.redAccent,
-                  foregroundColor: Colors.white,
-                  onPressed: () async {
-                    await FirebaseAuth.instance.signOut();
-                  },
-                  child: const Icon(Icons.logout),
-                  tooltip: 'Logout',
+                Icon(
+                  Icons.receipt_long_outlined,
+                  size: 80,
+                  color: Colors.grey[400],
                 ),
                 const SizedBox(height: 16),
-                FloatingActionButton.small(
-                  heroTag: 'responsive_demo',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const ResponsiveHome()),
-                    );
-                  },
-                  child: const Icon(Icons.aspect_ratio),
-                  tooltip: 'Show Responsive Demo',
-                ),
-                const SizedBox(height: 16),
-                FloatingActionButton(
-                  heroTag: 'admin_login',
-                  onPressed: () {
-                    // Check if already logged in
-                    if (FirebaseAuth.instance.currentUser != null) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AdminDashboard(),
-                        ),
-                      );
-                    } else {
-                      // Not logged in, go to Auth Screen
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AuthScreen(
-                            initialRole: 'vendor',
-                            onAuthSuccess: () {
-                              // After successful login, replace with Admin Dashboard
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const AdminDashboard(),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                  child: const Icon(Icons.admin_panel_settings),
-                  tooltip: 'Admin Login',
+                Text(
+                  'No orders yet',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[600],
+                  ),
                 ),
               ],
             ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isWideScreen = constraints.maxWidth > 600;
-            final isDesktop = constraints.maxWidth > 900;
+          );
+        }
 
-            return SingleChildScrollView(
-              child: Column(
-                children: [
-                  // Hero Section
-                  _buildHeroSection(context, isWideScreen, isDesktop),
+        final orders = snapshot.data!.docs;
 
-                  // Food Outlets Section
-                  _buildFoodOutletsSection(context, isWideScreen, isDesktop),
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: orders.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final order = orders[index].data() as Map<String, dynamic>;
+            final orderId = orders[index].id;
+            final status = order['status'] as String? ?? 'pending';
+            final total = (order['total'] as num?)?.toDouble() ?? 0.0;
 
-                  // Features Section
-                  _buildFeaturesSection(context, isWideScreen, isDesktop),
-
-                  // How It Works Section
-                  _buildHowItWorksSection(context, isWideScreen, isDesktop),
-
-                  // CTA Section
-                  _buildCTASection(context, isWideScreen),
-                ],
+            return Card(
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Colors.deepOrange.withOpacity(0.2),
+                  child: const Icon(Icons.receipt, color: Colors.deepOrange),
+                ),
+                title: Text(
+                  'Order #${orderId.substring(0, 8)}',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text('Status: ${status.toUpperCase()}'),
+                trailing: Text(
+                  '₹${total.toStringAsFixed(2)}',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.deepOrange,
+                  ),
+                ),
               ),
             );
           },
+        );
+      },
+    );
+  }
+
+  Widget _buildNotificationsPage(BuildContext context) {
+    if (!widget.isAuthenticatedUser) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.notifications_outlined,
+              size: 80,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Sign in to view notifications',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AuthScreen(
+                      onAuthSuccess: () {
+                        // Navigation handled by main.dart
+                      },
+                    ),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+              ),
+              child: const Text('Sign In'),
+            ),
+          ],
         ),
+      );
+    }
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.notifications_outlined,
+            size: 80,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No notifications yet',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfilePage(BuildContext context) {
+    if (!widget.isAuthenticatedUser) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.person_outline,
+              size: 80,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Guest Mode',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Sign in to access your profile',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: Colors.grey[500],
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AuthScreen(
+                      onAuthSuccess: () {
+                        // Navigation handled by main.dart
+                      },
+                    ),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+              ),
+              child: const Text('Sign In'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 50,
+            backgroundColor: Colors.deepOrange.shade100,
+            child: Icon(
+              Icons.person,
+              size: 50,
+              color: Colors.deepOrange,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            user?.email ?? 'User',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 32),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+              },
+              icon: const Icon(Icons.logout),
+              label: const Text('Logout'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -455,20 +671,18 @@ class CustomerLandingPage extends StatelessWidget {
     );
   }
 
-  Widget _buildFoodOutletsSection(
+  Widget _buildApprovedVendorsSection(
     BuildContext context,
     bool isWideScreen,
     bool isDesktop,
   ) {
-    final crossAxisCount = isDesktop ? 3 : (isWideScreen ? 2 : 1);
-    final childAspectRatio = isDesktop ? 1.4 : (isWideScreen ? 1.5 : 2.2);
-
     return Container(
       padding: EdgeInsets.all(isWideScreen ? 32 : 20),
+      color: Colors.white,
       child: Column(
         children: [
           Text(
-            'Popular Food Outlets',
+            'Available Vendors',
             style: GoogleFonts.poppins(
               fontSize: isWideScreen ? 32 : 26,
               fontWeight: FontWeight.w700,
@@ -477,7 +691,7 @@ class CustomerLandingPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Discover delicious street food near you',
+            'Browse food from approved vendors',
             style: GoogleFonts.inter(
               fontSize: isWideScreen ? 18 : 15,
               color: Colors.grey.shade600,
@@ -486,19 +700,92 @@ class CustomerLandingPage extends StatelessWidget {
           ),
           SizedBox(height: isWideScreen ? 32 : 24),
 
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: childAspectRatio,
-            ),
-            itemCount: _foodOutlets.length,
-            itemBuilder: (context, index) {
-              final outlet = _foodOutlets[index];
-              return _buildOutletCard(context, outlet, isWideScreen);
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .where('role', isEqualTo: 'vendor')
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(40),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.store_outlined,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No vendors available yet',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              // Filter approved vendors in the app
+              final approvedVendors = snapshot.data!.docs.where((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                final status = data['status'] as String? ?? 'pending';
+                return status == 'approved';
+              }).toList();
+
+              if (approvedVendors.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(40),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.store_outlined,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No vendors available yet',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              final crossAxisCount = isDesktop ? 3 : (isWideScreen ? 2 : 1);
+
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: isDesktop ? 1.1 : (isWideScreen ? 1.2 : 1.5),
+                ),
+                itemCount: approvedVendors.length,
+                itemBuilder: (context, index) {
+                  final vendorDoc = approvedVendors[index];
+                  final vendor = vendorDoc.data() as Map<String, dynamic>;
+                  final vendorId = vendorDoc.id; // Get document ID
+                  return _buildVendorCard(context, vendor, vendorId, isWideScreen);
+                },
+              );
             },
           ),
         ],
@@ -506,179 +793,207 @@ class CustomerLandingPage extends StatelessWidget {
     );
   }
 
-  Widget _buildOutletCard(
+  Widget _buildVendorCard(
     BuildContext context,
-    Map<String, dynamic> outlet,
+    Map<String, dynamic> vendor,
+    String vendorId,
     bool isWideScreen,
   ) {
-    final Color outletColor = outlet['color'] as Color;
-    final bool isOpen = outlet['isOpen'] as bool;
+    final shopName = vendor['shopName'] as String? ?? 'Unknown Shop';
+    final description = vendor['description'] as String? ?? 'No description';
+    final isOpen = vendor['isOpen'] as bool? ?? false;
+    final imageUrl = vendor['imageUrl'] as String?;
 
     return GestureDetector(
-      onTap: isOpen
-          ? () {
-              // TODO: Navigate to outlet menu
-              ScaffoldMessenger.of(context)
-                ..clearSnackBars()
-                ..showSnackBar(
-                  SnackBar(
-                    content: Text('Opening ${outlet['name']}...'),
-                    backgroundColor: outletColor,
-                    behavior: SnackBarBehavior.floating,
-                    margin: const EdgeInsets.only(
-                      bottom: 16,
-                      left: 16,
-                      right: 16,
-                    ),
-                    duration: const Duration(seconds: 2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+      onTap: () {
+        if (!isOpen) {
+          // Show closed message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '$shopName is currently closed',
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
                     ),
                   ),
-                );
-            }
-          : null,
-      child: Container(
-        padding: EdgeInsets.all(isWideScreen ? 20 : 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.12),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-          border: Border.all(
-            color: isOpen ? Colors.grey.shade100 : Colors.grey.shade300,
-          ),
-        ),
-        child: Opacity(
-          opacity: isOpen ? 1.0 : 0.6,
-          child: Row(
-            children: [
-              // Outlet Icon
-              Container(
-                padding: EdgeInsets.all(isWideScreen ? 16 : 12),
-                decoration: BoxDecoration(
-                  color: outletColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  outlet['icon'] as IconData,
-                  size: isWideScreen ? 36 : 28,
-                  color: outletColor,
-                ),
+                ],
               ),
-              SizedBox(width: isWideScreen ? 16 : 12),
-
-              // Outlet Details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            outlet['name'] as String,
-                            style: TextStyle(
-                              fontSize: isWideScreen ? 18 : 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (!isOpen)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade400,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              'Closed',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        } else if (vendorId.isNotEmpty) {
+          // Navigate to vendor menu
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => VendorMenuScreen(
+                vendorId: vendorId,
+                shopName: shopName,
+              ),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Unable to open vendor menu'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+      child: Card(
+        elevation: 3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Vendor Image or Icon
+            SizedBox(
+              height: 120,
+              width: double.infinity,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.deepOrange.shade300,
+                          Colors.deepOrange.shade100,
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: imageUrl != null && imageUrl.isNotEmpty
+                        ? Image.network(
+                            imageUrl,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
+                                      : null,
+                                  color: Colors.white,
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) =>
+                                Center(
+                              child: Icon(
+                                Icons.store,
+                                size: 50,
+                                color: Colors.deepOrange.shade700,
                               ),
                             ),
+                          )
+                        : Center(
+                            child: Icon(
+                              Icons.store,
+                              size: 50,
+                              color: Colors.deepOrange.shade700,
+                            ),
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      outlet['cuisine'] as String,
-                      style: TextStyle(
-                        fontSize: isWideScreen ? 14 : 12,
-                        color: Colors.grey.shade600,
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isOpen ? Colors.green : Colors.red,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        isOpen ? 'OPEN' : 'CLOSED',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      outlet['speciality'] as String,
-                      style: TextStyle(
-                        fontSize: isWideScreen ? 13 : 11,
-                        color: outletColor,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.star,
-                          size: 16,
-                          color: Colors.amber.shade600,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${outlet['rating']}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade800,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Icon(
-                          Icons.access_time,
-                          size: 14,
-                          color: Colors.grey.shade500,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          outlet['time'] as String,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-
-              // Arrow
-              if (isOpen)
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: Colors.grey.shade400,
-                ),
-            ],
-          ),
+            ),
+            // Vendor Details
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    shopName,
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description.isEmpty ? 'Delicious food awaits!' : description,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.star,
+                        size: 16,
+                        color: Colors.amber.shade600,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '4.5',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        size: 14,
+                        color: Colors.grey[400],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
