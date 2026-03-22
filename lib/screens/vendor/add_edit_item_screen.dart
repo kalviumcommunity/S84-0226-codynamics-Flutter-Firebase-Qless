@@ -1,7 +1,11 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../models/menu_item_model.dart';
 import '../../providers/vendor_provider.dart';
+import '../../services/storage_service.dart';
 
 /// Screen for adding or editing a menu item
 class AddEditItemScreen extends StatefulWidget {
@@ -21,9 +25,99 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
   final _categoryController = TextEditingController();
   final _imageUrlController = TextEditingController();
   bool _isAvailable = true;
-  bool _isLoading = false;
+  bool _isUploading = false;
 
   bool get _isEditing => widget.item != null;
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    
+    if (pickedFile == null) return;
+
+    setState(() => _isUploading = true);
+    try {
+      final downloadUrl = await StorageService.instance.uploadImage(
+        File(pickedFile.path),
+        'menu_items',
+      );
+      if (downloadUrl != null) {
+        setState(() {
+          _imageUrlController.text = downloadUrl;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Image upload failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
+    }
+  }
+
+  Future<void> _saveItem() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    try {
+      final provider = VendorProvider();
+      final imageUrl = _imageUrlController.text.trim();
+
+      if (_isEditing) {
+        provider.updateMenuItem(
+          itemId: widget.item!.id,
+          name: _nameController.text.trim(),
+          description: _descriptionController.text.trim(),
+          price: double.parse(_priceController.text.trim()),
+          category: _categoryController.text.trim(),
+          imageUrl: imageUrl,
+          isAvailable: _isAvailable,
+        );
+      } else {
+        provider.addMenuItem(
+          name: _nameController.text.trim(),
+          description: _descriptionController.text.trim(),
+          price: double.parse(_priceController.text.trim()),
+          category: _categoryController.text.trim(),
+          imageUrl: imageUrl,
+          isAvailable: _isAvailable,
+        );
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_isEditing ? 'Item updated successfully!' : 'Item added successfully!'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } on FormatException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: Please enter a valid price'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -48,59 +142,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
     super.dispose();
   }
 
-  Future<void> _saveItem() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    final provider = VendorProvider();
-
-    try {
-      if (_isEditing) {
-        await provider.updateMenuItem(
-          itemId: widget.item!.id,
-          name: _nameController.text.trim(),
-          description: _descriptionController.text.trim(),
-          price: double.parse(_priceController.text.trim()),
-          category: _categoryController.text.trim(),
-          imageUrl: _imageUrlController.text.trim(),
-          isAvailable: _isAvailable,
-        );
-      } else {
-        await provider.addMenuItem(
-          name: _nameController.text.trim(),
-          description: _descriptionController.text.trim(),
-          price: double.parse(_priceController.text.trim()),
-          category: _categoryController.text.trim(),
-          imageUrl: _imageUrlController.text.trim(),
-          isAvailable: _isAvailable,
-        );
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_isEditing ? 'Item updated!' : 'Item added!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _deleteItem() async {
+  void _deleteItem() async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -125,15 +167,15 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
 
     if (confirm != true) return;
 
-    setState(() => _isLoading = true);
     final provider = VendorProvider();
-    await provider.deleteMenuItem(widget.item!.id);
+    provider.deleteMenuItem(widget.item!.id); // Fire and forget
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Item deleted'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 2),
         ),
       );
       Navigator.pop(context);
@@ -195,7 +237,9 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
               keyboardType: TextInputType.number,
               validator: (v) {
                 if (v?.trim().isEmpty ?? true) return 'Required';
-                if (double.tryParse(v!) == null) return 'Invalid price';
+                final price = double.tryParse(v!);
+                if (price == null) return 'Invalid price';
+                if (price < 0) return 'Price cannot be negative';
                 return null;
               },
             ),
@@ -211,14 +255,31 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
               validator: (v) => v?.trim().isEmpty ?? true ? 'Required' : null,
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _imageUrlController,
-              decoration: InputDecoration(
-                labelText: 'Image URL',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                prefixIcon: const Icon(Icons.image),
-                hintText: 'https://example.com/image.jpg',
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _imageUrlController,
+                    decoration: InputDecoration(
+                      labelText: 'Image URL',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: const Icon(Icons.image),
+                      hintText: 'e.g., https://example.com/image.jpg',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: _isUploading ? null : _pickImage,
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                  ),
+                  child: _isUploading
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.upload_file),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             SwitchListTile(
@@ -232,7 +293,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _isLoading ? null : _saveItem,
+              onPressed: _saveItem,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.deepOrange,
                 foregroundColor: Colors.white,
@@ -241,22 +302,13 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Text(
-                      _isEditing ? 'Update Item' : 'Add Item',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+              child: Text(
+                _isEditing ? 'Update Item' : 'Add Item',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ],
         ),

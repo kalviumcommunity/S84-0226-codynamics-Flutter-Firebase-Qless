@@ -236,13 +236,24 @@ class _ItemCard extends StatelessWidget {
                   Switch(
                     value: item.isAvailable,
                     onChanged: (value) async {
-                      await FirebaseFirestore.instance
-                          .collection('menu_items')
-                          .doc(item.id)
-                          .update({
-                        'isAvailable': value,
-                        'updatedAt': FieldValue.serverTimestamp(),
-                      });
+                      try {
+                        await FirebaseFirestore.instance
+                            .collection('menu_items')
+                            .doc(item.id)
+                            .update({
+                          'isAvailable': value,
+                          'updatedAt': FieldValue.serverTimestamp(),
+                        });
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to update availability: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
                     },
                   ),
                   Text(

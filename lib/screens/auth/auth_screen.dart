@@ -138,8 +138,11 @@ class _AuthScreenState extends State<AuthScreen>
   }
 
   Future<void> _signIn() async {
+<<<<<<< HEAD
     print('🔐 Signing in...');
     
+=======
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
     final credential = await _auth.signInWithEmailAndPassword(
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
@@ -147,11 +150,10 @@ class _AuthScreenState extends State<AuthScreen>
 
     final uid = credential.user?.uid;
     if (uid == null) return;
-
-    print('✅ Sign in successful, UID: $uid');
     
     // Read the existing role from Firestore (don't overwrite it!)
     try {
+<<<<<<< HEAD
       final doc = await _firestore.collection('users').doc(uid).get();
       if (doc.exists) {
         final existingRole = doc.data()?['role'] as String?;
@@ -164,12 +166,19 @@ class _AuthScreenState extends State<AuthScreen>
       }
     } catch (e) {
       print('⚠️ Could not read role from Firestore: $e');
+=======
+      await _firestore.collection('users').doc(uid).set({
+        'role': _selectedRole,
+        'email': _emailController.text.trim(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      // Continue anyway - role is cached in memory
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
     }
   }
 
   Future<void> _signUp() async {
-    print('📝 Signing up with role: $_selectedRole');
-    
     final now = FieldValue.serverTimestamp();
 
     final credential = await _auth.createUserWithEmailAndPassword(
@@ -179,8 +188,6 @@ class _AuthScreenState extends State<AuthScreen>
 
     final uid = credential.user?.uid;
     if (uid == null) return;
-
-    print('✅ Sign up successful, UID: $uid');
     
     // Notify parent immediately about selected role
     widget.onRoleSelected?.call(_selectedRole);
@@ -195,8 +202,6 @@ class _AuthScreenState extends State<AuthScreen>
     if (_selectedRole == 'vendor') {
       final shopName = _shopNameController.text.trim();
       final ownerName = _ownerNameController.text.trim();
-      
-      print('📝 Vendor data - Shop: "$shopName", Owner: "$ownerName"');
       
       userData.addAll({
         'shopName': shopName,
@@ -215,19 +220,8 @@ class _AuthScreenState extends State<AuthScreen>
     }
 
     try {
-      print('💾 Saving to Firestore: $userData');
       await _firestore.collection('users').doc(uid).set(userData);
-      print('✅ User data saved to Firestore successfully');
-      
-      // Verify the data was saved
-      final doc = await _firestore.collection('users').doc(uid).get();
-      if (doc.exists) {
-        print('✅ Verification: Document exists with data: ${doc.data()}');
-      } else {
-        print('⚠️ Warning: Document was not found after save');
-      }
     } catch (e) {
-      print('❌ Firestore write failed: $e');
       // Firestore write failed — delete the just-created Auth account so
       // the user can retry without getting "email-already-in-use".
       await credential.user?.delete();

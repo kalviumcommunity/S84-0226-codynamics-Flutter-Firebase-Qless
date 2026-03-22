@@ -5,7 +5,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:qless/screens/auth/auth_screen.dart';
 import 'package:qless/screens/admin/admin_dashboard.dart';
 import 'package:qless/screens/responsive_home.dart';
+<<<<<<< HEAD
 import 'package:qless/screens/customer/vendor_menu_screen.dart';
+=======
+import 'package:qless/screens/customer/shop_menu_screen.dart';
+import 'package:qless/services/firestore_service.dart';
+import 'package:qless/screens/customer/data_seeder_util.dart';
+
+import 'package:qless/screens/customer/user_dashboard_screen.dart';
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
 
 class CustomerLandingPage extends StatefulWidget {
   final bool isAuthenticatedUser;
@@ -15,6 +23,7 @@ class CustomerLandingPage extends StatefulWidget {
     this.isAuthenticatedUser = false,
   });
 
+<<<<<<< HEAD
   @override
   State<CustomerLandingPage> createState() => _CustomerLandingPageState();
 }
@@ -22,6 +31,8 @@ class CustomerLandingPage extends StatefulWidget {
 class _CustomerLandingPageState extends State<CustomerLandingPage> {
   int _selectedIndex = 0;
 
+=======
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
   @override
   Widget build(BuildContext context) {
     // Define pages for each tab
@@ -201,6 +212,17 @@ class _CustomerLandingPageState extends State<CustomerLandingPage> {
                     fontWeight: FontWeight.w600,
                     color: Colors.grey[600],
                   ),
+                ),
+                const SizedBox(height: 16),
+                FloatingActionButton.extended(
+                  heroTag: 'manage_data_btn',
+                  backgroundColor: Colors.deepOrange,
+                  foregroundColor: Colors.white,
+                  icon: const Icon(Icons.settings_applications),
+                  label: const Text('Manage Test Data'),
+                  onPressed: () {
+                    DataSeederUtil.showManagerDialog(context);
+                  },
                 ),
               ],
             ),
@@ -606,7 +628,10 @@ class _CustomerLandingPageState extends State<CustomerLandingPage> {
         // Main CTA Button
         ElevatedButton(
           onPressed: () {
-            // TODO: Navigate to menu/order page
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const UserDashboardScreen()),
+            );
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.white,
@@ -682,7 +707,11 @@ class _CustomerLandingPageState extends State<CustomerLandingPage> {
       child: Column(
         children: [
           Text(
+<<<<<<< HEAD
             'Available Vendors',
+=======
+            'Available Shops',
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
             style: GoogleFonts.poppins(
               fontSize: isWideScreen ? 32 : 26,
               fontWeight: FontWeight.w700,
@@ -691,7 +720,11 @@ class _CustomerLandingPageState extends State<CustomerLandingPage> {
           ),
           const SizedBox(height: 8),
           Text(
+<<<<<<< HEAD
             'Browse food from approved vendors',
+=======
+            'Live vendor data from Firebase',
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
             style: GoogleFonts.inter(
               fontSize: isWideScreen ? 18 : 15,
               color: Colors.grey.shade600,
@@ -700,6 +733,7 @@ class _CustomerLandingPageState extends State<CustomerLandingPage> {
           ),
           SizedBox(height: isWideScreen ? 32 : 24),
 
+<<<<<<< HEAD
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('users')
@@ -731,10 +765,29 @@ class _CustomerLandingPageState extends State<CustomerLandingPage> {
                         ),
                       ],
                     ),
+=======
+          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: FirestoreService.instance.vendorsStream(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              if (snapshot.hasError) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                      'Error: ${snapshot.error}',
+                      style: GoogleFonts.poppins(color: Colors.red),
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
                   ),
                 );
               }
 
+<<<<<<< HEAD
               // Filter approved vendors in the app
               final approvedVendors = snapshot.data!.docs.where((doc) {
                 final data = doc.data() as Map<String, dynamic>;
@@ -763,12 +816,24 @@ class _CustomerLandingPageState extends State<CustomerLandingPage> {
                         ),
                       ],
                     ),
+=======
+              final docs = snapshot.data?.docs ?? [];
+              if (docs.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'No shops available yet.',
+                    style: GoogleFonts.poppins(color: Colors.grey.shade700),
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
                   ),
                 );
               }
 
+<<<<<<< HEAD
               final crossAxisCount = isDesktop ? 3 : (isWideScreen ? 2 : 1);
 
+=======
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
               return GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -776,6 +841,7 @@ class _CustomerLandingPageState extends State<CustomerLandingPage> {
                   crossAxisCount: crossAxisCount,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
+<<<<<<< HEAD
                   childAspectRatio: isDesktop ? 1.1 : (isWideScreen ? 1.2 : 1.5),
                 ),
                 itemCount: approvedVendors.length,
@@ -784,6 +850,32 @@ class _CustomerLandingPageState extends State<CustomerLandingPage> {
                   final vendor = vendorDoc.data() as Map<String, dynamic>;
                   final vendorId = vendorDoc.id; // Get document ID
                   return _buildVendorCard(context, vendor, vendorId, isWideScreen);
+=======
+                  childAspectRatio: childAspectRatio,
+                ),
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                  final data = docs[index].data();
+                  final shopName = (data['shopName'] as String?)?.trim().isNotEmpty == true
+                      ? (data['shopName'] as String).trim()
+                      : ((data['ownerName'] as String?)?.trim().isNotEmpty == true
+                          ? (data['ownerName'] as String).trim()
+                          : 'Vendor');
+                  final subtitle = (data['description'] as String?)?.trim().isNotEmpty == true
+                      ? (data['description'] as String).trim()
+                      : 'Tap to browse items';
+                  final isOpen = data['isActive'] as bool? ?? true;
+
+                  return _buildOutletCard(
+                    context,
+                    vendorId: docs[index].id,
+                    shopName: shopName,
+                    subtitle: subtitle,
+                    isOpen: isOpen,
+                    colorIndex: index,
+                    isWideScreen: isWideScreen,
+                  );
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
                 },
               );
             },
@@ -795,6 +887,7 @@ class _CustomerLandingPageState extends State<CustomerLandingPage> {
 
   Widget _buildVendorCard(
     BuildContext context,
+<<<<<<< HEAD
     Map<String, dynamic> vendor,
     String vendorId,
     bool isWideScreen,
@@ -897,6 +990,122 @@ class _CustomerLandingPageState extends State<CustomerLandingPage> {
                                 Icons.store,
                                 size: 50,
                                 color: Colors.deepOrange.shade700,
+=======
+    {
+    required String vendorId,
+    required String shopName,
+    required String subtitle,
+    required bool isOpen,
+    required int colorIndex,
+    required bool isWideScreen,
+  }
+  ) {
+    const colors = [
+      Colors.deepOrange,
+      Colors.teal,
+      Colors.indigo,
+      Colors.green,
+      Colors.brown,
+      Colors.pink,
+    ];
+    const icons = [
+      Icons.storefront,
+      Icons.local_dining,
+      Icons.ramen_dining,
+      Icons.local_cafe,
+      Icons.lunch_dining,
+      Icons.restaurant,
+    ];
+
+    final outletColor = colors[colorIndex % colors.length];
+    final outletIcon = icons[colorIndex % icons.length];
+
+    return GestureDetector(
+      onTap: isOpen
+          ? () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ShopMenuScreen(
+                    vendorId: vendorId,
+                    shopName: shopName,
+                  ),
+                ),
+              );
+            }
+          : null,
+      child: Container(
+        padding: EdgeInsets.all(isWideScreen ? 20 : 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.12),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(
+            color: isOpen ? Colors.grey.shade100 : Colors.grey.shade300,
+          ),
+        ),
+        child: Opacity(
+          opacity: isOpen ? 1.0 : 0.6,
+          child: Row(
+            children: [
+              // Outlet Icon
+              Container(
+                padding: EdgeInsets.all(isWideScreen ? 16 : 12),
+                decoration: BoxDecoration(
+                  color: outletColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  outletIcon,
+                  size: isWideScreen ? 36 : 28,
+                  color: outletColor,
+                ),
+              ),
+              SizedBox(width: isWideScreen ? 16 : 12),
+
+              // Outlet Details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            shopName,
+                            style: TextStyle(
+                              fontSize: isWideScreen ? 18 : 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (!isOpen)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade400,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              'Closed',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
                               ),
                             ),
                           )
@@ -907,6 +1116,7 @@ class _CustomerLandingPageState extends State<CustomerLandingPage> {
                               color: Colors.deepOrange.shade700,
                             ),
                           ),
+<<<<<<< HEAD
                   ),
                   Positioned(
                     top: 8,
@@ -938,6 +1148,31 @@ class _CustomerLandingPageState extends State<CustomerLandingPage> {
                     ),
                   ),
                 ],
+=======
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      isOpen ? 'Open now' : 'Currently unavailable',
+                      style: TextStyle(
+                        fontSize: isWideScreen ? 14 : 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: isWideScreen ? 13 : 11,
+                        color: outletColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
               ),
             ),
             // Vendor Details

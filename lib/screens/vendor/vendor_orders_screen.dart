@@ -22,6 +22,7 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen> {
     'cooking': 'Preparing',
     'ready': 'Ready',
     'completed': 'Completed',
+    'rejected': 'Rejected',
   };
 
   @override
@@ -145,6 +146,7 @@ class _OrderCard extends StatelessWidget {
     OrderStatus.cooking: Colors.blue,
     OrderStatus.ready: Colors.green,
     OrderStatus.completed: Colors.grey,
+    OrderStatus.rejected: Colors.red,
   };
 
   static const _statusLabels = {
@@ -152,6 +154,7 @@ class _OrderCard extends StatelessWidget {
     OrderStatus.cooking: 'Preparing',
     OrderStatus.ready: 'Ready',
     OrderStatus.completed: 'Completed',
+    OrderStatus.rejected: 'Rejected',
   };
 
   @override
@@ -166,7 +169,7 @@ class _OrderCard extends StatelessWidget {
         leading: CircleAvatar(
           backgroundColor: statusColor.withValues(alpha: 0.2),
           child: Text(
-            '#${order.tokenNumber}',
+            '#${order.token.length > 4 ? order.token.substring(order.token.length - 4) : order.token}',
             style: GoogleFonts.poppins(
               fontWeight: FontWeight.bold,
               color: statusColor,
@@ -216,52 +219,35 @@ class _OrderCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Order items (fetched from subcollection)
-                FutureBuilder<QuerySnapshot>(
-                  future: FirebaseFirestore.instance
-                      .collection('orders')
-                      .doc(order.id)
-                      .collection('items')
-                      .get(),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                if (order.items.isNotEmpty) ...[
+                  Text(
+                    'Items:',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...order.items.map((item) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
                         children: [
+                          const Icon(Icons.circle, size: 6),
+                          const SizedBox(width: 8),
                           Text(
-                            'Items:',
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
+                            '${item.name} × ${item.quantity}',
+                            style: GoogleFonts.poppins(fontSize: 13),
                           ),
-                          const SizedBox(height: 8),
-                          ...snapshot.data!.docs.map((doc) {
-                            final data = doc.data() as Map<String, dynamic>;
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 4),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.circle, size: 6),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '${data['name']} × ${data['quantity']}',
-                                    style: GoogleFonts.poppins(fontSize: 13),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-                          const Divider(height: 24),
                         ],
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
+                      ),
+                    );
+                  }),
+                  const Divider(height: 24),
+                ],
 
                 // Status update buttons
-                if (order.status != OrderStatus.completed) ...[
+                if (order.status != OrderStatus.completed && order.status != OrderStatus.rejected) ...[
                   Text(
                     'Update Status:',
                     style: GoogleFonts.poppins(
@@ -295,12 +281,13 @@ class _OrderCard extends StatelessWidget {
   List<OrderStatus> _getNextStatuses(OrderStatus current) {
     switch (current) {
       case OrderStatus.pending:
-        return [OrderStatus.cooking];
+        return [OrderStatus.cooking, OrderStatus.rejected];
       case OrderStatus.cooking:
         return [OrderStatus.ready];
       case OrderStatus.ready:
         return [OrderStatus.completed];
       case OrderStatus.completed:
+      case OrderStatus.rejected:
         return [];
     }
   }

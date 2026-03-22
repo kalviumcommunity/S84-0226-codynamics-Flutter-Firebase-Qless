@@ -4,11 +4,18 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:provider/provider.dart';
+import 'providers/vendor_provider.dart';
+import 'providers/cart_provider.dart';
 import 'firebase_options.dart';
 import 'screens/auth/auth_screen.dart';
+<<<<<<< HEAD
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/admin/super_admin_dashboard.dart';
+=======
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
 import 'screens/customer/customer_landing_page.dart';
+import 'screens/vendor/vendor_dashboard.dart';
 import 'screens/splash/splash_screen.dart';
 import 'screens/stateless_stateful_demo.dart';
 import 'screens/forms_demo.dart';
@@ -32,7 +39,15 @@ void main() async {
     }
   }
 
-  runApp(const QlessApp());
+  runApp(
+    MultiProvider(
+      providers: [
+          ChangeNotifierProvider(create: (_) => VendorProvider()),
+          ChangeNotifierProvider(create: (_) => CartProvider()),
+      ],
+      child: const QlessApp(),
+    ),
+  );
 }
 
 class QlessApp extends StatelessWidget {
@@ -174,9 +189,18 @@ class _RoleBasedHome extends StatelessWidget {
 
   Future<String> _resolveRole() async {
     try {
+<<<<<<< HEAD
       print('🔍 Resolving role for UID: ${user.uid}');
       final doc =
           await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+=======
+      // Fast timeout: check user document quickly, fall back to default user role to prevent startup hang
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get()
+          .timeout(const Duration(seconds: 2));
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
 
       if (!doc.exists) {
         print('⚠️ User document does not exist');
@@ -196,11 +220,17 @@ class _RoleBasedHome extends StatelessWidget {
       final hasVendorFields =
           (data?['shopName'] as String?)?.isNotEmpty == true ||
               (data?['ownerName'] as String?)?.isNotEmpty == true;
+<<<<<<< HEAD
       final fallbackRole = hasVendorFields ? 'vendor' : 'user';
       print('⚠️ Using fallback role: $fallbackRole');
       return fallbackRole;
     } catch (e) {
       print('❌ Error resolving role: $e');
+=======
+      return hasVendorFields ? 'vendor' : 'user';
+    } catch (_) {
+      // In case of timeout or offline without cache, default to user
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
       return 'user';
     }
   }
@@ -224,8 +254,12 @@ class _RoleBasedHome extends StatelessWidget {
           return const SuperAdminDashboard();
         }
         if (role == 'vendor') {
+<<<<<<< HEAD
           print('✅ Navigating to AdminDashboard (Vendor)');
           return const AdminDashboard();
+=======
+          return const VendorDashboard();
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
         }
         print('✅ Navigating to CustomerLandingPage');
         return const CustomerLandingPage(isAuthenticatedUser: true);
