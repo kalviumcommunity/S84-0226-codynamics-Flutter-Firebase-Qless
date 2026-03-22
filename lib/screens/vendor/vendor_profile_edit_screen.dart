@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -18,6 +19,30 @@ class VendorProfileEditScreen extends StatefulWidget {
 
 class _VendorProfileEditScreenState extends State<VendorProfileEditScreen> {
   bool _isEditing = false;
+  late Stream<DocumentSnapshot<Map<String, dynamic>>> _profileStream;
+
+  @override
+  void initState() {
+    super.initState();
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    _profileStream = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .snapshots();
+  }
+
+  String _readProfileValue(
+    Map<String, dynamic> data,
+    List<String> keys,
+  ) {
+    for (final key in keys) {
+      final value = data[key];
+      if (value is String && value.trim().isNotEmpty) {
+        return value.trim();
+      }
+    }
+    return '';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,10 +72,7 @@ class _VendorProfileEditScreenState extends State<VendorProfileEditScreen> {
         ],
       ),
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .snapshots(),
+        stream: _profileStream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -66,10 +88,19 @@ class _VendorProfileEditScreenState extends State<VendorProfileEditScreen> {
           }
 
           final data = snapshot.data!.data()!;
+          final profileData = <String, dynamic>{
+            ...data,
+            'shopName': _readProfileValue(data, const ['shopName']),
+            'ownerName': _readProfileValue(data, const ['ownerName', 'name']),
+          };
 
           return _isEditing
-              ? _EditProfileForm(profileData: data, uid: uid)
-              : _ViewProfile(profileData: data);
+              ? _EditProfileForm(
+                  profileData: profileData,
+                  uid: uid,
+                  onSaved: () => setState(() => _isEditing = false),
+                )
+              : _ViewProfile(profileData: profileData);
         },
       ),
     );
@@ -182,8 +213,13 @@ class _InfoCard extends StatelessWidget {
 class _EditProfileForm extends StatefulWidget {
   final Map<String, dynamic> profileData;
   final String uid;
+  final VoidCallback onSaved;
 
-  const _EditProfileForm({required this.profileData, required this.uid});
+  const _EditProfileForm({
+    required this.profileData,
+    required this.uid,
+    required this.onSaved,
+  });
 
   @override
   State<_EditProfileForm> createState() => _EditProfileFormState();
@@ -258,6 +294,34 @@ class _EditProfileFormState extends State<_EditProfileForm> {
 
     setState(() => _isLoading = true);
 
+<<<<<<< HEAD
+    // Fire and forget using provider. It writes to Firestore which optimistically 
+    // updates the local cache immediately. 
+    final provider = VendorProvider();
+    provider.updateVendorProfile(
+      shopName: _shopNameController.text.trim(),
+      ownerName: _ownerNameController.text.trim(),
+      description: _descriptionController.text.trim(),
+      phone: _phoneController.text.trim(),
+      address: _addressController.text.trim(),
+      imageUrl: _imageUrlController.text.trim(),
+    );
+
+    // Give a small UI delay so it "feels" like it saved, but don't hold the user
+    // hostage waiting for a network response. The StreamBuilder updates instantly.
+    await Future.delayed(const Duration(milliseconds: 400));
+
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Profile updated successfully!'),
+        backgroundColor: Colors.green,
+      ),
+    );
+    widget.onSaved();
+=======
     try {
       final provider = context.read<VendorProvider>();
       await provider.updateVendorProfile(
@@ -294,6 +358,7 @@ class _EditProfileFormState extends State<_EditProfileForm> {
         );
       }
     }
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
   }
 
   @override

@@ -9,6 +9,11 @@ import 'providers/vendor_provider.dart';
 import 'providers/cart_provider.dart';
 import 'firebase_options.dart';
 import 'screens/auth/auth_screen.dart';
+<<<<<<< HEAD
+import 'screens/admin/admin_dashboard.dart';
+import 'screens/admin/super_admin_dashboard.dart';
+=======
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
 import 'screens/customer/customer_landing_page.dart';
 import 'screens/vendor/vendor_dashboard.dart';
 import 'screens/splash/splash_screen.dart';
@@ -50,15 +55,19 @@ class QlessApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Qless',
-      debugShowCheckedModeBanner: false,
-      routes: {
-        '/demo': (context) => const StatelessStatefulDemo(),
-        '/forms': (context) => const FormsDemo(),
-        '/devtools': (context) => const DevToolsDemo(),
-      },
-      theme: ThemeData(
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, authSnapshot) {
+        return MaterialApp(
+          key: ValueKey(authSnapshot.data?.uid ?? 'logged_out'),
+          title: 'Qless',
+          debugShowCheckedModeBanner: false,
+          routes: {
+            '/demo': (context) => const StatelessStatefulDemo(),
+            '/forms': (context) => const FormsDemo(),
+            '/devtools': (context) => const DevToolsDemo(),
+          },
+          theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.deepOrange,
           brightness: Brightness.light,
@@ -143,39 +152,31 @@ class QlessApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const AppEntry(),
+      home: _buildHome(authSnapshot),
     );
-  }
+  },
+  );
 }
 
-class AppEntry extends StatelessWidget {
-  const AppEntry({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return SplashScreen(
-            onComplete: () {
-              // This splash is display-only while Firebase resolves persisted auth state.
-            },
-          );
-        }
-        if (snapshot.hasError) {
-          return const Scaffold(
-            body: Center(child: Text('Something went wrong. Please restart the app.')),
-          );
-        }
-        if (snapshot.hasData) {
-          return _RoleBasedHome(user: snapshot.data!);
-        }
-        return AuthScreen(
-          onAuthSuccess: () {
-            // StreamBuilder updates automatically when auth state changes.
-          },
-        );
+  Widget _buildHome(AsyncSnapshot<User?> snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return SplashScreen(
+        onComplete: () {
+          // This splash is display-only while Firebase resolves persisted auth state.
+        },
+      );
+    }
+    if (snapshot.hasError) {
+      return const Scaffold(
+        body: Center(child: Text('Something went wrong. Please restart the app.')),
+      );
+    }
+    if (snapshot.hasData) {
+      return _RoleBasedHome(user: snapshot.data!);
+    }
+    return AuthScreen(
+      onAuthSuccess: () {
+        // StreamBuilder updates automatically when auth state changes.
       },
     );
   }
@@ -188,29 +189,48 @@ class _RoleBasedHome extends StatelessWidget {
 
   Future<String> _resolveRole() async {
     try {
+<<<<<<< HEAD
+      print('🔍 Resolving role for UID: ${user.uid}');
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+=======
       // Fast timeout: check user document quickly, fall back to default user role to prevent startup hang
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get()
           .timeout(const Duration(seconds: 2));
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
 
       if (!doc.exists) {
+        print('⚠️ User document does not exist');
         return 'user';
       }
 
       final data = doc.data();
+      print('📄 User data: $data');
       final role = data?['role'] as String?;
-      if (role == 'vendor' || role == 'user') {
+      print('👤 Role found: $role');
+      
+      if (role == 'admin' || role == 'vendor' || role == 'user') {
+        print('✅ Returning role: $role');
         return role!;
       }
 
       final hasVendorFields =
           (data?['shopName'] as String?)?.isNotEmpty == true ||
               (data?['ownerName'] as String?)?.isNotEmpty == true;
+<<<<<<< HEAD
+      final fallbackRole = hasVendorFields ? 'vendor' : 'user';
+      print('⚠️ Using fallback role: $fallbackRole');
+      return fallbackRole;
+    } catch (e) {
+      print('❌ Error resolving role: $e');
+=======
       return hasVendorFields ? 'vendor' : 'user';
     } catch (_) {
       // In case of timeout or offline without cache, default to user
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
       return 'user';
     }
   }
@@ -227,9 +247,21 @@ class _RoleBasedHome extends StatelessWidget {
         }
 
         final role = snapshot.data ?? 'user';
-        if (role == 'vendor') {
-          return const VendorDashboard();
+        print('🚀 Routing to screen for role: $role');
+        
+        if (role == 'admin') {
+          print('✅ Navigating to SuperAdminDashboard');
+          return const SuperAdminDashboard();
         }
+        if (role == 'vendor') {
+<<<<<<< HEAD
+          print('✅ Navigating to AdminDashboard (Vendor)');
+          return const AdminDashboard();
+=======
+          return const VendorDashboard();
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
+        }
+        print('✅ Navigating to CustomerLandingPage');
         return const CustomerLandingPage(isAuthenticatedUser: true);
       },
     );

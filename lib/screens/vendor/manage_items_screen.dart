@@ -131,7 +131,7 @@ class _ManageItemsScreenState extends State<ManageItemsScreen> {
                 return ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   itemCount: docs.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final item = MenuItemModel.fromFirestore(docs[index]);
                     return _ItemCard(item: item);
@@ -191,7 +191,7 @@ class _ItemCard extends StatelessWidget {
                         width: 80,
                         height: 80,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _placeholderImage(),
+                        errorBuilder: (_, _, _) => _placeholderImage(),
                       )
                     : _placeholderImage(),
               ),

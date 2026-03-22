@@ -138,6 +138,11 @@ class _AuthScreenState extends State<AuthScreen>
   }
 
   Future<void> _signIn() async {
+<<<<<<< HEAD
+    print('🔐 Signing in...');
+    
+=======
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
     final credential = await _auth.signInWithEmailAndPassword(
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
@@ -146,11 +151,22 @@ class _AuthScreenState extends State<AuthScreen>
     final uid = credential.user?.uid;
     if (uid == null) return;
     
-    // Notify parent immediately about selected role
-    widget.onRoleSelected?.call(_selectedRole);
-
-    // Update the role in Firestore to match selected toggle
+    // Read the existing role from Firestore (don't overwrite it!)
     try {
+<<<<<<< HEAD
+      final doc = await _firestore.collection('users').doc(uid).get();
+      if (doc.exists) {
+        final existingRole = doc.data()?['role'] as String?;
+        print('✅ Existing role in Firestore: $existingRole');
+        
+        // Notify parent about the actual role from Firestore
+        if (existingRole != null) {
+          widget.onRoleSelected?.call(existingRole);
+        }
+      }
+    } catch (e) {
+      print('⚠️ Could not read role from Firestore: $e');
+=======
       await _firestore.collection('users').doc(uid).set({
         'role': _selectedRole,
         'email': _emailController.text.trim(),
@@ -158,6 +174,7 @@ class _AuthScreenState extends State<AuthScreen>
       }, SetOptions(merge: true));
     } catch (e) {
       // Continue anyway - role is cached in memory
+>>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
     }
   }
 
@@ -189,7 +206,9 @@ class _AuthScreenState extends State<AuthScreen>
       userData.addAll({
         'shopName': shopName,
         'ownerName': ownerName,
+        'status': 'pending',  // Vendor status starts as pending
         'isActive': true,
+        'isOpen': false,  // Store starts as closed
         'phone': '',
         'address': '',
         'description': '',
