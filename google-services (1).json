@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "276799854524",
+    "project_id": "codynamics-qless",
+    "storage_bucket": "codynamics-qless.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:276799854524:android:1fb33b2fe713400fb8fdb9",
+        "android_client_info": {
+          "package_name": "com.Codynamics.Qless"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA7MiQiNip4CH_LtbJ636WcJMBMKfpyeyo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
