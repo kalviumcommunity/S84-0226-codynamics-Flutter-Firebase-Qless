@@ -70,7 +70,7 @@ class _EditVendorProfileScreenState extends State<EditVendorProfileScreen> {
         throw Exception('User not authenticated');
       }
 
-      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+      await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'shopName': _shopNameController.text.trim(),
         'ownerName': _ownerNameController.text.trim(),
         'phone': _phoneController.text.trim(),
@@ -79,29 +79,28 @@ class _EditVendorProfileScreenState extends State<EditVendorProfileScreen> {
         'imageUrl': _imageUrlController.text.trim(),
         'isActive': _isActive,
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
 
       if (mounted) {
+        setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Profile updated successfully'),
             backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
           ),
         );
-        Navigator.pop(context, true); // Return true to indicate success
+        Navigator.pop(context, true); // Pop out of edit mode back to preview
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error updating profile: $e'),
             backgroundColor: Colors.red,
           ),
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
       }
     }
   }
