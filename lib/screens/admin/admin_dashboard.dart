@@ -22,9 +22,38 @@ class AdminDashboard extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              if (context.mounted) {
-                Navigator.of(context).pop();
+              // Show confirmation dialog
+              final shouldLogout = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text(
+                    'Sign Out',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                  ),
+                  content: Text(
+                    'Are you sure you want to sign out?',
+                    style: GoogleFonts.inter(),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepOrange,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Sign Out'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (shouldLogout == true && context.mounted) {
+                await FirebaseAuth.instance.signOut();
+                // The StreamBuilder in main.dart will automatically redirect to AuthScreen
               }
             },
             tooltip: 'Logout',
@@ -37,13 +66,13 @@ class AdminDashboard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Welcome, Vendor! 👋',
+              'Welcome, Admin! 👋',
               style: GoogleFonts.poppins(
                   fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
             Text(
-              'All data is fetched live from Cloud Firestore.',
+              'Manage all vendors, orders, and system data.',
               style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
             ),
             const SizedBox(height: 28),
@@ -55,8 +84,8 @@ class AdminDashboard extends StatelessWidget {
                 children: [
                   _DashboardCard(
                     icon: Icons.receipt_long,
-                    label: 'Live Orders',
-                    description: 'Real-time stream via StreamBuilder',
+                    label: 'All Orders',
+                    description: 'View orders from all vendors',
                     color: Colors.orange,
                     onTap: () => Navigator.push(
                       context,
@@ -66,8 +95,8 @@ class AdminDashboard extends StatelessWidget {
                   ),
                   _DashboardCard(
                     icon: Icons.restaurant_menu,
-                    label: 'Menu Items',
-                    description: 'Live menu via StreamBuilder',
+                    label: 'All Menu Items',
+                    description: 'View menu items from all vendors',
                     color: Colors.green,
                     onTap: () => Navigator.push(
                       context,
@@ -76,15 +105,26 @@ class AdminDashboard extends StatelessWidget {
                     ),
                   ),
                   _DashboardCard(
-                    icon: Icons.person,
-                    label: 'My Profile',
-                    description: 'One-time read via FutureBuilder',
+                    icon: Icons.store,
+                    label: 'All Vendors',
+                    description: 'Manage vendor accounts',
                     color: Colors.blue,
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
                           builder: (_) => const VendorProfileScreen()),
                     ),
+                  ),
+                  _DashboardCard(
+                    icon: Icons.people,
+                    label: 'All Users',
+                    description: 'View all registered users',
+                    color: Colors.purple,
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Users screen coming soon')),
+                      );
+                    },
                   ),
                 ],
               ),

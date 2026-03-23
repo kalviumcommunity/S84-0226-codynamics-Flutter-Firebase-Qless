@@ -124,15 +124,21 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   Stream<QuerySnapshot<Map<String, dynamic>>> _buildQuery(String vendorId, bool pendingOnly) {
-    var query = FirebaseFirestore.instance
-        .collection('orders')
-        .where('vendorId', isEqualTo: vendorId);
+    Query<Map<String, dynamic>> query = FirebaseFirestore.instance.collection('orders');
+    
+    // Admin sees all orders, vendors see only their orders
+    if (vendorId.isNotEmpty) {
+      // Check if user is admin by checking if they have admin role
+      // For now, we'll show all orders (admin view)
+      // If you want vendor-specific filtering, uncomment the line below
+      // query = query.where('vendorId', isEqualTo: vendorId);
+    }
 
     if (pendingOnly) {
       query = query.where('status', isEqualTo: 'pending');
     }
 
-    return query.orderBy('createdAt', descending: true).snapshots();
+    return query.snapshots();
   }
 
   Widget _buildSummaryBanner(

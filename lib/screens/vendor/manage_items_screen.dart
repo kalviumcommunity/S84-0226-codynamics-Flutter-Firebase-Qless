@@ -35,6 +35,7 @@ class _ManageItemsScreenState extends State<ManageItemsScreen> {
         ),
         backgroundColor: Colors.deepOrange,
         foregroundColor: Colors.white,
+        automaticallyImplyLeading: false,
       ),
       body: Column(
         children: [
