@@ -146,19 +146,24 @@ class _AuthScreenState extends State<AuthScreen>
     final uid = credential.user?.uid;
     if (uid == null) return;
     
-    // Notify parent immediately about selected role
-    widget.onRoleSelected?.call(_selectedRole);
-
-    // Update the role in Firestore to match selected toggle
+    // Read the existing role from Firestore
+    String existingRole = 'user';
     try {
-      await _firestore.collection('users').doc(uid).set({
-        'role': _selectedRole,
-        'email': _emailController.text.trim(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      final doc = await _firestore.collection('users').doc(uid).get();
+      if (doc.exists) {
+        final data = doc.data();
+        existingRole = data?['role'] as String? ?? 'user';
+        debugPrint('🔐 Sign-in: Existing role in Firestore: $existingRole');
+      }
     } catch (e) {
-      // Continue anyway - role is cached in memory
+      debugPrint('❌ Error reading role: $e');
     }
+    
+    // IMPORTANT: Always use the existing role from Firestore, never the UI selection
+    // The UI selection is only for sign-up, not sign-in
+    widget.onRoleSelected?.call(existingRole);
+    
+    debugPrint('✅ Sign-in complete with role: $existingRole');
   }
 
   Future<void> _signUp() async {
@@ -237,7 +242,7 @@ class _AuthScreenState extends State<AuthScreen>
   String _extractRoleFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
     final role = data?['role'] as String?;
-    if (role == 'vendor' || role == 'user') {
+    if (role == 'vendor' || role == 'user' || role == 'admin' || role == 'superadmin') {
       return role!;
     }
 

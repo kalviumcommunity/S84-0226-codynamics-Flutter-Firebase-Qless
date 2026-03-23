@@ -9,6 +9,7 @@ import 'providers/vendor_provider.dart';
 import 'providers/cart_provider.dart';
 import 'firebase_options.dart';
 import 'screens/auth/auth_screen.dart';
+import 'screens/admin/admin_dashboard.dart';
 import 'screens/customer/customer_landing_page.dart';
 import 'screens/vendor/vendor_dashboard.dart';
 import 'screens/splash/splash_screen.dart';
@@ -188,6 +189,8 @@ class _RoleBasedHome extends StatelessWidget {
 
   Future<String> _resolveRole() async {
     try {
+      debugPrint('🔍 Starting role resolution for user: ${user.uid}');
+      
       // Fast timeout: check user document quickly, fall back to default user role to prevent startup hang
       final doc = await FirebaseFirestore.instance
           .collection('users')
@@ -196,20 +199,46 @@ class _RoleBasedHome extends StatelessWidget {
           .timeout(const Duration(seconds: 2));
 
       if (!doc.exists) {
+        debugPrint('❌ No user document found for ${user.uid}, defaulting to user');
         return 'user';
       }
 
       final data = doc.data();
+      debugPrint('📄 User document data: $data');
+      
       final role = data?['role'] as String?;
-      if (role == 'vendor' || role == 'user') {
-        return role!;
+      debugPrint('🔍 Extracted role field: "$role"');
+      
+      // Check for explicit role field first
+      if (role != null && role.isNotEmpty) {
+        // Support admin, superadmin, vendor, and user roles
+        if (role == 'admin' || role == 'superadmin') {
+          debugPrint('✅ Resolved role: admin (from role field: $role)');
+          return 'admin';
+        } else if (role == 'vendor') {
+          debugPrint('✅ Resolved role: vendor (from role field)');
+          return 'vendor';
+        } else if (role == 'user') {
+          debugPrint('✅ Resolved role: user (from role field)');
+          return 'user';
+        } else {
+          debugPrint('⚠️ Unknown role value: "$role", defaulting to user');
+          return 'user';
+        }
       }
 
+      // Fallback: check for vendor-specific fields
+      final shopName = data?['shopName'] as String?;
+      final ownerName = data?['ownerName'] as String?;
+      debugPrint('🔍 Checking vendor fields - shopName: "$shopName", ownerName: "$ownerName"');
+      
       final hasVendorFields =
-          (data?['shopName'] as String?)?.isNotEmpty == true ||
-              (data?['ownerName'] as String?)?.isNotEmpty == true;
-      return hasVendorFields ? 'vendor' : 'user';
-    } catch (_) {
+          (shopName?.isNotEmpty == true) || (ownerName?.isNotEmpty == true);
+      final fallbackRole = hasVendorFields ? 'vendor' : 'user';
+      debugPrint('✅ Resolved role from fields: $fallbackRole');
+      return fallbackRole;
+    } catch (e) {
+      debugPrint('❌ Error resolving role: $e');
       // In case of timeout or offline without cache, default to user
       return 'user';
     }
@@ -227,10 +256,19 @@ class _RoleBasedHome extends StatelessWidget {
         }
 
         final role = snapshot.data ?? 'user';
-        if (role == 'vendor') {
+        debugPrint('🚀 Routing to: $role dashboard for user: ${user.uid}');
+        
+        // Route based on role - STRICT matching
+        if (role == 'admin' || role == 'superadmin') {
+          debugPrint('✅ Loading AdminDashboard');
+          return const AdminDashboard();
+        } else if (role == 'vendor') {
+          debugPrint('✅ Loading VendorDashboard');
           return const VendorDashboard();
+        } else {
+          debugPrint('✅ Loading CustomerLandingPage');
+          return const CustomerLandingPage(isAuthenticatedUser: true);
         }
-        return const CustomerLandingPage(isAuthenticatedUser: true);
       },
     );
   }
