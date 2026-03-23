@@ -31,6 +31,7 @@ class _VendorProfileEditScreenState extends State<VendorProfileEditScreen> {
         ),
         backgroundColor: Colors.deepOrange,
         foregroundColor: Colors.white,
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: Icon(_isEditing ? Icons.close : Icons.edit),
@@ -40,7 +41,37 @@ class _VendorProfileEditScreenState extends State<VendorProfileEditScreen> {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await FirebaseAuth.instance.signOut();
+              final shouldLogout = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text(
+                    'Sign Out',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                  ),
+                  content: Text(
+                    'Are you sure you want to sign out?',
+                    style: GoogleFonts.inter(),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepOrange,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Sign Out'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (shouldLogout == true && context.mounted) {
+                await FirebaseAuth.instance.signOut();
+              }
             },
             tooltip: 'Logout',
           ),

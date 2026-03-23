@@ -37,6 +37,7 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen> {
         ),
         backgroundColor: Colors.deepOrange,
         foregroundColor: Colors.white,
+        automaticallyImplyLeading: false,
       ),
       body: Column(
         children: [
@@ -78,9 +79,29 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen> {
 
                 if (snapshot.hasError) {
                   return Center(
-                    child: Text(
-                      'Error: ${snapshot.error}',
-                      style: GoogleFonts.poppins(color: Colors.red),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Error loading orders',
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.red,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${snapshot.error}',
+                            style: GoogleFonts.poppins(color: Colors.grey[600]),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 }
@@ -99,12 +120,26 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _selectedFilter == 'all' 
+                              ? 'Orders will appear here'
+                              : 'No ${_filters[_selectedFilter]} orders',
+                          style: GoogleFonts.poppins(color: Colors.grey[600]),
+                        ),
                       ],
                     ),
                   );
                 }
 
+                // Sort orders by createdAt locally (newest first)
                 final docs = snapshot.data!.docs;
+                docs.sort((a, b) {
+                  final aTime = (a.data()['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+                  final bTime = (b.data()['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+                  return bTime.compareTo(aTime); // Descending order
+                });
+
                 return ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: docs.length,
@@ -131,7 +166,9 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen> {
       query = query.where('status', isEqualTo: _selectedFilter);
     }
 
-    return query.orderBy('createdAt', descending: true).snapshots();
+    // Removed orderBy to avoid composite index requirement
+    // Sorting is done locally in the StreamBuilder
+    return query.snapshots();
   }
 }
 

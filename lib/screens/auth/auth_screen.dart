@@ -162,7 +162,24 @@ class _AuthScreenState extends State<AuthScreen>
       }
     } catch (e) {
       print('⚠️ Could not read role from Firestore: $e');
+    // Read the existing role from Firestore
+    String existingRole = 'user';
+    try {
+      final doc = await _firestore.collection('users').doc(uid).get();
+      if (doc.exists) {
+        final data = doc.data();
+        existingRole = data?['role'] as String? ?? 'user';
+        debugPrint('🔐 Sign-in: Existing role in Firestore: $existingRole');
+      }
+    } catch (e) {
+      debugPrint('❌ Error reading role: $e');
     }
+    
+    // IMPORTANT: Always use the existing role from Firestore, never the UI selection
+    // The UI selection is only for sign-up, not sign-in
+    widget.onRoleSelected?.call(existingRole);
+    
+    debugPrint('✅ Sign-in complete with role: $existingRole');
   }
 
   Future<void> _signUp() async {
@@ -243,7 +260,7 @@ class _AuthScreenState extends State<AuthScreen>
   String _extractRoleFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
     final role = data?['role'] as String?;
-    if (role == 'vendor' || role == 'user') {
+    if (role == 'vendor' || role == 'user' || role == 'admin' || role == 'superadmin') {
       return role!;
     }
 

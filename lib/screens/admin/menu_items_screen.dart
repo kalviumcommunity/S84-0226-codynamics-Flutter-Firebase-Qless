@@ -516,6 +516,10 @@ class _MenuItemsScreenState extends State<MenuItemsScreen> {
                 .where('vendorId', isEqualTo: vendorId)
                 .snapshots()
             : const Stream.empty(),
+
+        stream: FirebaseFirestore.instance
+            .collection('menu_items')
+            .snapshots(),
         builder: (context, snapshot) {
           // ── Loading ────────────────────────────────────────────────────
           if (snapshot.connectionState == ConnectionState.waiting) {

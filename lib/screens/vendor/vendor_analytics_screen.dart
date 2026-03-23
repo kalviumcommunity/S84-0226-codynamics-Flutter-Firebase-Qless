@@ -18,6 +18,7 @@ class VendorAnalyticsScreen extends StatelessWidget {
         ),
         backgroundColor: Colors.deepOrange,
         foregroundColor: Colors.white,
+        automaticallyImplyLeading: false,
       ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: VendorProvider().getVendorAnalytics(),
