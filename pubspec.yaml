@@ -40,14 +40,9 @@ dependencies:
   firebase_auth: ^6.1.4
   cloud_firestore: ^6.1.2
   provider: ^6.1.2
-<<<<<<< HEAD
-  image_picker: ^1.0.7
-  firebase_storage: ^13.0.6
-=======
   image_picker: ^1.2.1
   firebase_storage: ^13.1.0
   uuid: ^4.5.3
->>>>>>> 20727ec32dfcc65a13dccb622afc3a2e414925a0
 
 dev_dependencies:
   flutter_test:
