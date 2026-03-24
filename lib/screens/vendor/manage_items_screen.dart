@@ -35,6 +35,7 @@ class _ManageItemsScreenState extends State<ManageItemsScreen> {
         ),
         backgroundColor: Colors.deepOrange,
         foregroundColor: Colors.white,
+        automaticallyImplyLeading: false,
       ),
       body: Column(
         children: [
@@ -70,7 +71,6 @@ class _ManageItemsScreenState extends State<ManageItemsScreen> {
                   ? FirebaseFirestore.instance
                       .collection('menu_items')
                       .where('vendorId', isEqualTo: vendorId)
-                      .orderBy('name')
                       .snapshots()
                   : const Stream.empty(),
               builder: (context, snapshot) {
@@ -80,9 +80,29 @@ class _ManageItemsScreenState extends State<ManageItemsScreen> {
 
                 if (snapshot.hasError) {
                   return Center(
-                    child: Text(
-                      'Error: ${snapshot.error}',
-                      style: GoogleFonts.poppins(color: Colors.red),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Error loading items',
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.red,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${snapshot.error}',
+                            style: GoogleFonts.poppins(color: Colors.grey[600]),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 }
@@ -109,6 +129,13 @@ class _ManageItemsScreenState extends State<ManageItemsScreen> {
                 }
 
                 var docs = snapshot.data!.docs;
+
+                // Sort by name locally
+                docs.sort((a, b) {
+                  final nameA = (a.data()['name'] as String? ?? '').toLowerCase();
+                  final nameB = (b.data()['name'] as String? ?? '').toLowerCase();
+                  return nameA.compareTo(nameB);
+                });
 
                 // Filter by search query
                 if (_searchQuery.isNotEmpty) {
