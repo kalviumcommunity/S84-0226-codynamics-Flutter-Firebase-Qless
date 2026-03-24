@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import 'package:qless/widgets/floating_nav_bar.dart';
+=======
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/order_model.dart';
+
 import 'manage_items_screen.dart';
 import 'add_edit_item_screen.dart';
 import 'vendor_orders_screen.dart';
@@ -41,6 +45,33 @@ class _VendorDashboardState extends State<VendorDashboard> {
     }
 
     return Scaffold(
+
+      extendBody: true,
+      body: _screens[_selectedIndex],
+      bottomNavigationBar: FloatingNavBar(
+        selectedIndex: _selectedIndex,
+        onItemSelected: (index) => setState(() => _selectedIndex = index),
+        items: const [
+          FloatingNavBarItem(
+            icon: Icons.dashboard_outlined,
+            selectedIcon: Icons.dashboard,
+            label: 'Home',
+          ),
+          FloatingNavBarItem(
+            icon: Icons.restaurant_menu_outlined,
+            selectedIcon: Icons.restaurant_menu,
+            label: 'Items',
+          ),
+          FloatingNavBarItem(
+            icon: Icons.receipt_long_outlined,
+            selectedIcon: Icons.receipt_long,
+            label: 'Orders',
+          ),
+          FloatingNavBarItem(
+            icon: Icons.analytics_outlined,
+            selectedIcon: Icons.analytics,
+            label: 'Stats',
+=======
       body: currentScreen,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
@@ -61,9 +92,9 @@ class _VendorDashboardState extends State<VendorDashboard> {
             selectedIcon: Icon(Icons.notifications),
             label: 'Notifications',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
+          FloatingNavBarItem(
+            icon: Icons.person_outline,
+            selectedIcon: Icons.person,
             label: 'Profile',
           ),
         ],
