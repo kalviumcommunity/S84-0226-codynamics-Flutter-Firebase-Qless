@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../vendor/vendor_dashboard.dart';
-import '../customer/customer_landing_page.dart';
+import '../customer/customer_main_screen.dart';
 
 /// Screen to manually select role if Firestore is unavailable
 class RoleSelectionScreen extends StatelessWidget {
@@ -31,7 +31,7 @@ class RoleSelectionScreen extends StatelessWidget {
         MaterialPageRoute(
           builder: (_) => role == 'vendor'
               ? const VendorDashboard()
-              : const CustomerLandingPage(isAuthenticatedUser: true),
+              : const CustomerMainScreen(),
         ),
       );
     }
