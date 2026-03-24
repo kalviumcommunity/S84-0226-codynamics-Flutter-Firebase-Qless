@@ -32,8 +32,8 @@ flutter run
 **Say:** "Here's our demo app with an interactive counter, theme toggle, and color selector."
 
 **Demonstrate:**
-- Press "Increase" button 5 times
-- Show counter at 5
+- Press "Increase" button five times
+- Show counter at five
 - Point out the light theme
 - Note the blue color scheme
 
