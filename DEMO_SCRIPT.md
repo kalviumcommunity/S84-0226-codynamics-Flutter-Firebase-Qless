@@ -150,7 +150,7 @@ flutter run
 **Action:**
 1. Press Ctrl+Shift+P
 2. Type "Dart: Open DevTools"
-3. Select "Open DevTools in Web Browser"
+3. Select "Open DevTools in web browser"
 4. Wait for DevTools to open
 
 **Say:** "DevTools provides visual debugging, performance profiling, and memory analysis."
