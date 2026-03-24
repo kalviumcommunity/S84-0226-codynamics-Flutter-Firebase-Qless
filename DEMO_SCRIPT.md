@@ -159,10 +159,10 @@ flutter run
 **Say:** "The Widget Inspector lets us visually examine our app's structure."
 
 **Action:**
-1. Click "Widget Inspector" tab
-2. Show the widget tree on the left
-3. Point out the app preview in center
-4. Show properties panel on right
+1. Click "Widget Inspector" Tab.
+2. Show the widget tree on the left.
+3. Point out the app preview in center.
+4. Show properties panel on right.
 
 **Say:** "We can see the entire widget hierarchy. Let's select a specific widget."
 
