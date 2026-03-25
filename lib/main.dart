@@ -11,6 +11,7 @@ import 'firebase_options.dart';
 import 'screens/auth/auth_screen.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/customer/customer_landing_page.dart';
+import 'screens/customer/customer_main_screen.dart';
 import 'screens/vendor/vendor_dashboard.dart';
 import 'screens/splash/splash_screen.dart';
 import 'screens/stateless_stateful_demo.dart';

@@ -13,7 +13,7 @@ This project demonstrates the effective use of three essential Flutter developme
 **File:** `lib/screens/devtools_demo.dart`
 
 A fully interactive Flutter screen featuring:
-- Counter with animations (demonstrates state management)
+- Counter with animations (demonstrate state management)
 - Theme toggle (light/dark mode)
 - Color selector (smooth transitions)
 - Debug action buttons (error simulation, performance testing)
