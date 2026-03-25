@@ -510,13 +510,6 @@ class _MenuItemsScreenState extends State<MenuItemsScreen> {
         foregroundColor: Colors.white,
       ),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: vendorId.isNotEmpty
-            ? FirebaseFirestore.instance
-                .collection('menu_items')
-                .where('vendorId', isEqualTo: vendorId)
-                .snapshots()
-            : const Stream.empty(),
-
         stream: FirebaseFirestore.instance
             .collection('menu_items')
             .snapshots(),

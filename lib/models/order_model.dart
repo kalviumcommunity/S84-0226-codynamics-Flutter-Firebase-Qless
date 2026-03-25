@@ -47,8 +47,11 @@ class OrderItemModel {
 /// Represents an order document in the `orders` collection.
 class OrderModel {
   final String id;
+  final String userId;
   final String vendorId;
+  final String shopName;
   final String token;
+  final int? weekNumber;
   final String customerName;
   final OrderStatus status;
   final double totalAmount;
@@ -59,8 +62,11 @@ class OrderModel {
 
   const OrderModel({
     required this.id,
+    this.userId = '',
     required this.vendorId,
+    this.shopName = 'Unknown Shop',
     required this.token,
+    this.weekNumber,
     this.customerName = '',
     this.status = OrderStatus.pending,
     required this.totalAmount,
@@ -75,8 +81,11 @@ class OrderModel {
     final itemsData = data['items'] as List<dynamic>? ?? [];
     return OrderModel(
       id: doc.id,
+      userId: data['userId'] as String? ?? '',
       vendorId: data['vendorId'] as String? ?? '',
+      shopName: data['shopName'] as String? ?? 'Unknown Shop',
       token: data['token']?.toString() ?? '',
+      weekNumber: data['weekNumber'] as int?,
       customerName: data['customerName'] as String? ?? '',
       status: OrderStatus.values.firstWhere(
         (s) => s.name == (data['status'] as String? ?? 'pending'),
@@ -91,8 +100,11 @@ class OrderModel {
   }
 
   Map<String, dynamic> toFirestore() => {
+        'userId': userId,
         'vendorId': vendorId,
+        'shopName': shopName,
         'token': token,
+        'weekNumber': weekNumber,
         'customerName': customerName,
         'status': status.name,
         'totalAmount': totalAmount,

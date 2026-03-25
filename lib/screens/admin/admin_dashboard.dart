@@ -360,8 +360,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-
-            onPressed: () => _showSignOutDialog(context),
             onPressed: () async {
               // Show confirmation dialog
               final shouldLogout = await showDialog<bool>(
@@ -780,74 +778,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     style: GoogleFonts.poppins(
                       fontSize: 11,
                       color: Colors.grey[600],
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Welcome, Admin! 👋',
-              style: GoogleFonts.poppins(
-                  fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Manage all vendors, orders, and system data.',
-              style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 28),
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                children: [
-                  _DashboardCard(
-                    icon: Icons.receipt_long,
-                    label: 'All Orders',
-                    description: 'View orders from all vendors',
-                    color: Colors.orange,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const LiveOrdersScreen()),
                     ),
-                  ),
-                  _DashboardCard(
-                    icon: Icons.restaurant_menu,
-                    label: 'All Menu Items',
-                    description: 'View menu items from all vendors',
-                    color: Colors.green,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const MenuItemsScreen()),
-                    ),
-                  ),
-                  _DashboardCard(
-                    icon: Icons.store,
-                    label: 'All Vendors',
-                    description: 'Manage vendor accounts',
-                    color: Colors.blue,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const VendorProfileScreen()),
-                    ),
-                  ),
-                  _DashboardCard(
-                    icon: Icons.people,
-                    label: 'All Users',
-                    description: 'View all registered users',
-                    color: Colors.purple,
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Users screen coming soon')),
-                      );
-                    },
                   ),
                 ],
               ],
+            ),
+            trailing: isRead ? null : const CircleAvatar(
+              radius: 5,
+              backgroundColor: Colors.deepOrange,
             ),
             onTap: () async {
               if (!isRead) {
@@ -860,6 +798,81 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildAdminPage(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Welcome, Admin! 👋',
+            style: GoogleFonts.poppins(
+                fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Manage all vendors, orders, and system data.',
+            style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 28),
+          Expanded(
+            child: GridView.count(
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              children: [
+                _DashboardCard(
+                  icon: Icons.receipt_long,
+                  label: 'All Orders',
+                  description: 'View orders from all vendors',
+                  color: Colors.orange,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const LiveOrdersScreen()),
+                  ),
+                ),
+                _DashboardCard(
+                  icon: Icons.restaurant_menu,
+                  label: 'All Menu Items',
+                  description: 'View menu items from all vendors',
+                  color: Colors.green,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const MenuItemsScreen()),
+                  ),
+                ),
+                _DashboardCard(
+                  icon: Icons.store,
+                  label: 'All Vendors',
+                  description: 'Manage vendor accounts',
+                  color: Colors.blue,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const VendorProfileScreen()),
+                  ),
+                ),
+                _DashboardCard(
+                  icon: Icons.people,
+                  label: 'All Users',
+                  description: 'View all registered users',
+                  color: Colors.purple,
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Users screen coming soon')),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

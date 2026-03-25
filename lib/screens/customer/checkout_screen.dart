@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/cart_provider.dart';
+import '../../services/token_service.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final String vendorId;
@@ -29,13 +30,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     await Future.delayed(const Duration(seconds: 2));
 
     try {
-      final token = cart.generateOrderToken();
+      // Generate unique token
+      final token = await cart.generateUniqueOrderToken();
       final user = FirebaseAuth.instance.currentUser;
-      
+
+      // Get token metadata including week number
+      final tokenService = TokenService();
+      final tokenMetadata = tokenService.getTokenMetadata(token);
+      final weekNumber = tokenMetadata['weekNumber'] as int?;
+
       final orderData = {
         'userId': user?.uid ?? 'guest',
         'vendorId': widget.vendorId,
+        'shopName': widget.shopName,
         'token': token,
+        'weekNumber': weekNumber,
         'status': 'pending', // pending -> accepted -> preparing -> ready -> completed
         'totalAmount': cart.totalAmount,
         'items': cart.items.values.map((item) => {

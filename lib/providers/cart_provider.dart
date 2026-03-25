@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/menu_item_model.dart';
+import '../services/token_service.dart';
 import 'dart:math';
 
 class CartItem {
@@ -76,5 +77,12 @@ class CartProvider extends ChangeNotifier {
     final random = Random();
     return String.fromCharCodes(Iterable.generate(
         5, (_) => chars.codeUnitAt(random.nextInt(chars.length))));
+  }
+
+  /// Generate a unique token using TokenService
+  /// This method is async - should be called with await
+  Future<String> generateUniqueOrderToken() async {
+    final tokenService = TokenService();
+    return await tokenService.generateUniqueToken();
   }
 }

@@ -147,22 +147,8 @@ class _AuthScreenState extends State<AuthScreen>
 
     final uid = credential.user?.uid;
     if (uid == null) return;
-    
+
     // Read the existing role from Firestore (don't overwrite it!)
-    try {
-      final doc = await _firestore.collection('users').doc(uid).get();
-      if (doc.exists) {
-        final existingRole = doc.data()?['role'] as String?;
-        print('✅ Existing role in Firestore: $existingRole');
-        
-        // Notify parent about the actual role from Firestore
-        if (existingRole != null) {
-          widget.onRoleSelected?.call(existingRole);
-        }
-      }
-    } catch (e) {
-      print('⚠️ Could not read role from Firestore: $e');
-    // Read the existing role from Firestore
     String existingRole = 'user';
     try {
       final doc = await _firestore.collection('users').doc(uid).get();
@@ -174,11 +160,11 @@ class _AuthScreenState extends State<AuthScreen>
     } catch (e) {
       debugPrint('❌ Error reading role: $e');
     }
-    
+
     // IMPORTANT: Always use the existing role from Firestore, never the UI selection
     // The UI selection is only for sign-up, not sign-in
     widget.onRoleSelected?.call(existingRole);
-    
+
     debugPrint('✅ Sign-in complete with role: $existingRole');
   }
 

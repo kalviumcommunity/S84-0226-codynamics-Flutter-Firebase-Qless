@@ -10,10 +10,7 @@ import 'providers/cart_provider.dart';
 import 'firebase_options.dart';
 import 'screens/auth/auth_screen.dart';
 import 'screens/admin/admin_dashboard.dart';
-
 import 'screens/admin/super_admin_dashboard.dart';
-=======
-
 import 'screens/customer/customer_landing_page.dart';
 import 'screens/vendor/vendor_dashboard.dart';
 import 'screens/splash/splash_screen.dart';
@@ -24,26 +21,34 @@ import 'screens/devtools_demo.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await dotenv.load(fileName: ".env");
+  try {
+    await dotenv.load(fileName: ".env");
+    debugPrint('✅ Loaded .env file successfully');
+  } catch (e) {
+    debugPrint('⚠️ .env file not found or error loading: $e - Continuing without .env');
+  }
 
   try {
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+      debugPrint('✅ Firebase initialized successfully');
     }
   } catch (e) {
-    // Firebase app already initialized, which can happen during hot reload
-    if (!e.toString().contains('duplicate-app')) {
-      rethrow;
+    if (e.toString().contains('duplicate-app')) {
+      debugPrint('ℹ️ Firebase already initialized (duplicate-app)');
+    } else {
+      debugPrint('⚠️ Firebase initialization failed: $e');
+      debugPrint('⚠️ App will continue but some features may not work.');
     }
   }
 
   runApp(
     MultiProvider(
       providers: [
-          ChangeNotifierProvider(create: (_) => VendorProvider()),
-          ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => VendorProvider()),
+        ChangeNotifierProvider(create: (_) => CartProvider()),
       ],
       child: const QlessApp(),
     ),
@@ -68,95 +73,95 @@ class QlessApp extends StatelessWidget {
             '/devtools': (context) => const DevToolsDemo(),
           },
           theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepOrange,
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme)
-            .copyWith(
-              displayLarge: GoogleFonts.poppins(
-                fontWeight: FontWeight.bold,
-                fontSize: 57,
-              ),
-              displayMedium: GoogleFonts.poppins(
-                fontWeight: FontWeight.bold,
-                fontSize: 45,
-              ),
-              displaySmall: GoogleFonts.poppins(
-                fontWeight: FontWeight.bold,
-                fontSize: 36,
-              ),
-              headlineLarge: GoogleFonts.poppins(
-                fontWeight: FontWeight.w600,
-                fontSize: 32,
-              ),
-              headlineMedium: GoogleFonts.poppins(
-                fontWeight: FontWeight.w600,
-                fontSize: 28,
-              ),
-              headlineSmall: GoogleFonts.poppins(
-                fontWeight: FontWeight.w600,
-                fontSize: 24,
-              ),
-              titleLarge: GoogleFonts.poppins(
-                fontWeight: FontWeight.w600,
-                fontSize: 22,
-              ),
-              titleMedium: GoogleFonts.poppins(
-                fontWeight: FontWeight.w500,
-                fontSize: 16,
-              ),
-              titleSmall: GoogleFonts.poppins(
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
-              ),
-              bodyLarge: GoogleFonts.inter(fontSize: 16),
-              bodyMedium: GoogleFonts.inter(fontSize: 14),
-              bodySmall: GoogleFonts.inter(fontSize: 12),
-              labelLarge: GoogleFonts.poppins(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-              labelMedium: GoogleFonts.poppins(
-                fontWeight: FontWeight.w500,
-                fontSize: 12,
-              ),
-              labelSmall: GoogleFonts.poppins(
-                fontWeight: FontWeight.w500,
-                fontSize: 11,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.deepOrange,
+              brightness: Brightness.light,
+            ),
+            useMaterial3: true,
+            textTheme: GoogleFonts.poppinsTextTheme(ThemeData.light().textTheme)
+                .copyWith(
+                  displayLarge: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 57,
+                  ),
+                  displayMedium: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 45,
+                  ),
+                  displaySmall: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 36,
+                  ),
+                  headlineLarge: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 32,
+                  ),
+                  headlineMedium: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 28,
+                  ),
+                  headlineSmall: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 24,
+                  ),
+                  titleLarge: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 22,
+                  ),
+                  titleMedium: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 16,
+                  ),
+                  titleSmall: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                  bodyLarge: GoogleFonts.inter(fontSize: 16),
+                  bodyMedium: GoogleFonts.inter(fontSize: 14),
+                  bodySmall: GoogleFonts.inter(fontSize: 12),
+                  labelLarge: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                  labelMedium: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                  labelSmall: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 11,
+                  ),
+                ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                textStyle: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
               ),
             ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            textStyle: GoogleFonts.poppins(
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
+            outlinedButtonTheme: OutlinedButtonThemeData(
+              style: OutlinedButton.styleFrom(
+                textStyle: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                textStyle: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
             ),
           ),
-        ),
-        outlinedButtonTheme: OutlinedButtonThemeData(
-          style: OutlinedButton.styleFrom(
-            textStyle: GoogleFonts.poppins(
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-            ),
-          ),
-        ),
-        textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(
-            textStyle: GoogleFonts.poppins(
-              fontWeight: FontWeight.w500,
-              fontSize: 14,
-            ),
-          ),
-        ),
-      ),
-      home: _buildHome(authSnapshot),
+          home: _buildHome(authSnapshot),
+        );
+      },
     );
-  },
-  );
-}
+  }
 
   Widget _buildHome(AsyncSnapshot<User?> snapshot) {
     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -189,8 +194,6 @@ class _RoleBasedHome extends StatelessWidget {
 
   Future<String> _resolveRole() async {
     try {
-      print('🔍 Resolving role for UID: ${user.uid}');
-=======
       debugPrint('🔍 Starting role resolution for user: ${user.uid}');
 
       // Fast timeout: check user document quickly, fall back to default user role to prevent startup hang
@@ -201,29 +204,16 @@ class _RoleBasedHome extends StatelessWidget {
           .timeout(const Duration(seconds: 2));
 
       if (!doc.exists) {
-
-        print('⚠️ User document does not exist');
-=======
         debugPrint('❌ No user document found for ${user.uid}, defaulting to user');
-
         return 'user';
       }
 
       final data = doc.data();
-
-      print('📄 User data: $data');
-      final role = data?['role'] as String?;
-      print('👤 Role found: $role');
-      
-      if (role == 'admin' || role == 'vendor' || role == 'user') {
-        print('✅ Returning role: $role');
-        return role!;
-
       debugPrint('📄 User document data: $data');
-      
+
       final role = data?['role'] as String?;
       debugPrint('🔍 Extracted role field: "$role"');
-      
+
       // Check for explicit role field first
       if (role != null && role.isNotEmpty) {
         // Support admin, superadmin, vendor, and user roles
@@ -240,33 +230,21 @@ class _RoleBasedHome extends StatelessWidget {
           debugPrint('⚠️ Unknown role value: "$role", defaulting to user');
           return 'user';
         }
-
       }
 
       // Fallback: check for vendor-specific fields
       final shopName = data?['shopName'] as String?;
       final ownerName = data?['ownerName'] as String?;
       debugPrint('🔍 Checking vendor fields - shopName: "$shopName", ownerName: "$ownerName"');
-      
+
       final hasVendorFields =
-
-          (data?['shopName'] as String?)?.isNotEmpty == true ||
-              (data?['ownerName'] as String?)?.isNotEmpty == true;
-      final fallbackRole = hasVendorFields ? 'vendor' : 'user';
-      print('⚠️ Using fallback role: $fallbackRole');
-      return fallbackRole;
-    } catch (e) {
-      print('❌ Error resolving role: $e');
-
           (shopName?.isNotEmpty == true) || (ownerName?.isNotEmpty == true);
       final fallbackRole = hasVendorFields ? 'vendor' : 'user';
       debugPrint('✅ Resolved role from fields: $fallbackRole');
       return fallbackRole;
     } catch (e) {
       debugPrint('❌ Error resolving role: $e');
-
       // In case of timeout or offline without cache, default to user
-      return 'user';
       return 'user';
     }
   }
@@ -283,34 +261,19 @@ class _RoleBasedHome extends StatelessWidget {
         }
 
         final role = snapshot.data ?? 'user';
-
-        print('🚀 Routing to screen for role: $role');
-        
-        if (role == 'admin') {
-          print('✅ Navigating to SuperAdminDashboard');
-          return const SuperAdminDashboard();
-        }
-        if (role == 'vendor') {
-          print('✅ Navigating to VendorDashboard (Vendor)');
-
         debugPrint('🚀 Routing to: $role dashboard for user: ${user.uid}');
-        
+
         // Route based on role - STRICT matching
         if (role == 'admin' || role == 'superadmin') {
           debugPrint('✅ Loading AdminDashboard');
           return const AdminDashboard();
         } else if (role == 'vendor') {
           debugPrint('✅ Loading VendorDashboard');
-
           return const VendorDashboard();
         } else {
           debugPrint('✅ Loading CustomerLandingPage');
           return const CustomerLandingPage(isAuthenticatedUser: true);
         }
-
-        print('✅ Navigating to CustomerLandingPage');
-        return const CustomerLandingPage(isAuthenticatedUser: true);
-=======
       },
     );
   }
