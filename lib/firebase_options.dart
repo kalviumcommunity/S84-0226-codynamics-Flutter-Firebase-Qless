@@ -22,24 +22,13 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macOS - '
-          'you can reconfigure this by adding macOS credentials to the .env file.',
-        );
+        return web; // macOS uses web credentials as fallback
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for Windows - '
-          'you can reconfigure this by adding Windows credentials to the .env file.',
-        );
+        return web; // Windows uses web credentials as fallback
       case TargetPlatform.linux:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for Linux - '
-          'you can reconfigure this by adding Linux credentials to the .env file.',
-        );
+        return web; // Linux uses web credentials as fallback
       default:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions are not supported for this platform.',
-        );
+        return web; // Default fallback to web credentials
     }
   }
 

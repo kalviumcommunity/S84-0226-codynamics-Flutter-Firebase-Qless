@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/cart_provider.dart';
+import '../../services/queue_service.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final String vendorId;
@@ -21,6 +20,7 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _isProcessing = false;
+  final QueueService _queueService = QueueService();
 
   Future<void> _processPaymentAndOrder(BuildContext context, CartProvider cart) async {
     setState(() => _isProcessing = true);
@@ -29,33 +29,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     await Future.delayed(const Duration(seconds: 2));
 
     try {
-      final token = cart.generateOrderToken();
-      final user = FirebaseAuth.instance.currentUser;
-      
-      final orderData = {
-        'userId': user?.uid ?? 'guest',
-        'vendorId': widget.vendorId,
-        'token': token,
-        'status': 'pending', // pending -> accepted -> preparing -> ready -> completed
-        'totalAmount': cart.totalAmount,
-        'items': cart.items.values.map((item) => {
-          'productId': item.menuItem.id,
-          'name': item.menuItem.name,
-          'price': item.menuItem.price,
-          'quantity': item.quantity,
-        }).toList(),
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
+      final items = cart.items.values.map((item) => {
+        'productId': item.menuItem.id,
+        'name': item.menuItem.name,
+        'price': item.menuItem.price,
+        'quantity': item.quantity,
+      }).toList();
 
-      await FirebaseFirestore.instance.collection('orders').add(orderData);
+      final queueData = await _queueService.placeOrderAndJoinQueue(
+        vendorId: widget.vendorId,
+        shopName: widget.shopName,
+        totalAmount: cart.totalAmount,
+        items: items,
+      );
 
       if (!context.mounted) return;
 
       cart.clearCart();
 
       // Show success modal with token
-      _showTokenDialog(context, token);
+      _showTokenDialog(context, queueData['token'] ?? 'N/A', queueData['estimatedWaitTime'] ?? 0);
 
     } catch (e) {
       if (context.mounted) {
@@ -68,7 +61,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
-  void _showTokenDialog(BuildContext context, String token) {
+  void _showTokenDialog(BuildContext context, String token, int estimatedWaitTime) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -96,6 +89,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               child: Text(
                 token,
                 style: GoogleFonts.righteous(fontSize: 32, color: Colors.deepOrange, letterSpacing: 4),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Est. Wait Time: ~${estimatedWaitTime} mins',
+              style: GoogleFonts.poppins(
+                fontSize: 14, 
+                fontWeight: FontWeight.w600,
+                color: Colors.deepOrange.shade700
               ),
             ),
             const SizedBox(height: 16),

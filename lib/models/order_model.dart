@@ -47,24 +47,32 @@ class OrderItemModel {
 /// Represents an order document in the `orders` collection.
 class OrderModel {
   final String id;
+  final String userId;
   final String vendorId;
+  final String shopName;
   final String token;
+  final int? tokenNumber;
   final String customerName;
   final OrderStatus status;
   final double totalAmount;
   final bool isPaid;
+  final int? estimatedWaitTime;
   final List<OrderItemModel> items;
   final DateTime createdAt;
   final DateTime updatedAt;
 
   const OrderModel({
     required this.id,
+    this.userId = '',
     required this.vendorId,
+    this.shopName = 'Unknown Shop',
     required this.token,
+    this.tokenNumber,
     this.customerName = '',
     this.status = OrderStatus.pending,
     required this.totalAmount,
     this.isPaid = false,
+    this.estimatedWaitTime,
     this.items = const [],
     required this.createdAt,
     required this.updatedAt,
@@ -75,8 +83,11 @@ class OrderModel {
     final itemsData = data['items'] as List<dynamic>? ?? [];
     return OrderModel(
       id: doc.id,
+      userId: data['userId'] as String? ?? '',
       vendorId: data['vendorId'] as String? ?? '',
+      shopName: data['shopName'] as String? ?? 'Unknown Shop',
       token: data['token']?.toString() ?? '',
+      tokenNumber: data['tokenNumber'] as int?,
       customerName: data['customerName'] as String? ?? '',
       status: OrderStatus.values.firstWhere(
         (s) => s.name == (data['status'] as String? ?? 'pending'),
@@ -84,6 +95,7 @@ class OrderModel {
       ),
       totalAmount: (data['totalAmount'] as num?)?.toDouble() ?? 0.0,
       isPaid: data['isPaid'] as bool? ?? false,
+      estimatedWaitTime: data['estimatedWaitTime'] as int?,
       items: itemsData.map((e) => OrderItemModel.fromMap(e as Map<String, dynamic>)).toList(),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -91,12 +103,16 @@ class OrderModel {
   }
 
   Map<String, dynamic> toFirestore() => {
+        'userId': userId,
         'vendorId': vendorId,
+        'shopName': shopName,
         'token': token,
+        'tokenNumber': tokenNumber,
         'customerName': customerName,
         'status': status.name,
         'totalAmount': totalAmount,
         'isPaid': isPaid,
+        'estimatedWaitTime': estimatedWaitTime,
         'items': items.map((e) => e.toMap()).toList(),
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
