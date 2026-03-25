@@ -21,13 +21,16 @@ class QueueService {
     final queueDocId = "${vendorId}_$todayStr";
 
     final queueRef = _db.collection('queue_tokens').doc(queueDocId);
+    final globalTokenRef = _db.collection('app_counters').doc('order_tokens');
     final orderRef = _db.collection('orders').doc(); // Auto-generate ID
 
     int newTokenNumber = 0;
+    int newGlobalTokenNumber = 0;
     int estimatedWaitTime = 0;
 
     await _db.runTransaction((transaction) async {
       final queueSnapshot = await transaction.get(queueRef);
+      final globalTokenSnapshot = await transaction.get(globalTokenRef);
 
       if (queueSnapshot.exists) {
         final currentToken = queueSnapshot.data()?['currentToken'] as int? ?? 0;
@@ -56,14 +59,31 @@ class QueueService {
         });
       }
 
-      // Generate a user-friendly token string, e.g., "T001"
-      final tokenString = "T${newTokenNumber.toString().padLeft(3, '0')}";
+      final globalLastToken = globalTokenSnapshot.data()?['lastToken'] as int? ?? 0;
+      newGlobalTokenNumber = globalLastToken + 1;
+
+      if (globalTokenSnapshot.exists) {
+        transaction.update(globalTokenRef, {
+          'lastToken': newGlobalTokenNumber,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        transaction.set(globalTokenRef, {
+          'lastToken': newGlobalTokenNumber,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      // Generate a globally unique, user-friendly token string.
+      final tokenString = "T${newGlobalTokenNumber.toString().padLeft(5, '0')}";
 
       final orderData = {
         'userId': userId,
         'vendorId': vendorId,
         'shopName': shopName,
         'token': tokenString,
+        'globalTokenNumber': newGlobalTokenNumber,
         'tokenNumber': newTokenNumber,
         'status': 'pending',
         'totalAmount': totalAmount,
@@ -84,9 +104,10 @@ class QueueService {
 
     return {
       'orderId': orderRef.id,
-      'token': "T${newTokenNumber.toString().padLeft(3, '0')}",
+      'token': "T${newGlobalTokenNumber.toString().padLeft(5, '0')}",
       'estimatedWaitTime': estimatedWaitTime,
       'tokenNumber': newTokenNumber,
+      'globalTokenNumber': newGlobalTokenNumber,
     };
   }
 

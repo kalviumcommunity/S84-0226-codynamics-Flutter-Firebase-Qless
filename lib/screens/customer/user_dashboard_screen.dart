@@ -1,8 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:qless/screens/responsive_home.dart';
 import 'package:qless/services/firestore_service.dart';
 import 'shop_menu_screen.dart';
 import 'user_profile_screen.dart';
@@ -17,6 +15,8 @@ class UserDashboardScreen extends StatefulWidget {
 class _UserDashboardScreenState extends State<UserDashboardScreen> {
   bool _isLoading = false;
 
+  static const String _defaultShopBackground = 'assets/images/banner.png';
+
   Future<void> _seedMockShops(BuildContext context) async {
     setState(() => _isLoading = true);
     
@@ -26,11 +26,11 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
     try {
       final firestore = FirebaseFirestore.instance;
       final shops = [
-        {'role': 'vendor', 'shopName': 'Spice Garden', 'ownerName': 'Chef Raj', 'description': 'Authentic Indian Biryani & Curries', 'isActive': true, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()},
-        {'role': 'vendor', 'shopName': 'Dragon Wok', 'ownerName': 'Mei Lin', 'description': 'Delicious Chinese Noodles & Manchurian', 'isActive': true, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()},
-        {'role': 'vendor', 'shopName': 'Burger Barn', 'ownerName': 'John Doe', 'description': 'American Burgers & Crispy Fries', 'isActive': true, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()},
-        {'role': 'vendor', 'shopName': 'Chai & Snacks', 'ownerName': 'Amit', 'description': 'Hot Tea, Coffee & Fresh Samosas', 'isActive': true, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()},
-        {'role': 'vendor', 'shopName': 'Pizza Planet', 'ownerName': 'Mario', 'description': 'Italian Pizzas & Pasta', 'isActive': true, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()},
+        {'role': 'vendor', 'shopName': 'Spice Garden', 'ownerName': 'Chef Raj', 'description': 'Authentic Indian Biryani & Curries', 'imageUrl': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&h=600&fit=crop', 'isActive': true, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()},
+        {'role': 'vendor', 'shopName': 'Dragon Wok', 'ownerName': 'Mei Lin', 'description': 'Delicious Chinese Noodles & Manchurian', 'imageUrl': 'https://images.unsplash.com/photo-1585521537745-68823e6ce39f?w=800&h=600&fit=crop', 'isActive': true, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()},
+        {'role': 'vendor', 'shopName': 'Burger Barn', 'ownerName': 'John Doe', 'description': 'American Burgers & Crispy Fries', 'imageUrl': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=600&fit=crop', 'isActive': true, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()},
+        {'role': 'vendor', 'shopName': 'Chai & Snacks', 'ownerName': 'Amit', 'description': 'Hot Tea, Coffee & Fresh Samosas', 'imageUrl': 'https://images.unsplash.com/photo-1570080166338-1c2e4a0db3e3?w=800&h=600&fit=crop', 'isActive': true, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()},
+        {'role': 'vendor', 'shopName': 'Pizza Planet', 'ownerName': 'Mario', 'description': 'Italian Pizzas & Pasta', 'imageUrl': 'https://images.unsplash.com/photo-1564236052573-4ca76fc3e810?w=800&h=600&fit=crop', 'isActive': true, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()},
       ];
       
       for (final shop in shops) {
@@ -228,62 +228,138 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                       : 'Vendor');
               
               final description = data['description'] as String? ?? 'Tap to view menu';
-              final imageUrl = data['imageUrl'] as String? ?? '';
+              final imageUrl = _resolveShopImageUrl(data, shopName);
+              final rating = _buildMockRating(doc.id);
+              final orderedCount = _buildMockOrders(doc.id);
 
-              return Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ShopMenuScreen(
-                          vendorId: doc.id,
-                          shopName: shopName,
+              return InkWell(
+                borderRadius: BorderRadius.circular(24),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ShopMenuScreen(
+                        vendorId: doc.id,
+                        shopName: shopName,
+                      ),
+                    ),
+                  );
+                },
+                child: SizedBox(
+                  height: 350,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: _buildShopHeroImage(imageUrl),
                         ),
                       ),
-                    );
-                  },
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (imageUrl.isNotEmpty)
-                        ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                          child: Image.network(
-                            imageUrl,
-                            height: 140,
-                            fit: BoxFit.cover,
-                            errorBuilder: (ctx, err, trace) => _buildPlaceholder(),
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(24),
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.15),
+                              ],
+                            ),
                           ),
-                        )
-                      else
-                        _buildPlaceholder(),
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              shopName,
-                              style: GoogleFonts.poppins(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Positioned(
+                        left: 14,
+                        right: 14,
+                        bottom: 14,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.15),
+                                blurRadius: 14,
+                                offset: const Offset(0, 8),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              description,
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
-                                color: Colors.grey[700],
+                            ],
+                          ),
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                shopName,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.05,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF32A852),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.star_rounded, color: Colors.white, size: 18),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          rating.toStringAsFixed(2),
+                                          style: GoogleFonts.poppins(
+                                            color: Colors.white,
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      '$orderedCount ordered from here',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 16,
+                                        color: Colors.grey.shade700,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey.shade500, width: 1.4),
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                                child: Text(
+                                  description,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.grey.shade800,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -297,17 +373,64 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
     );
   }
 
-  Widget _buildPlaceholder() {
-    return Container(
-      height: 140,
-      decoration: const BoxDecoration(
-        color: Color(0xFFFFF3E0),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      child: const Center(
-        child: Icon(Icons.storefront, size: 56, color: Colors.deepOrange),
-      ),
-    );
+  Widget _buildShopHeroImage(String imageUrl) {
+    final normalizedUrl = imageUrl.trim();
+
+    if (normalizedUrl.isNotEmpty) {
+      if (normalizedUrl.startsWith('assets/')) {
+        return Image.asset(
+          normalizedUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (ctx, err, trace) {
+            return Image.asset(_defaultShopBackground, fit: BoxFit.cover);
+          },
+        );
+      }
+
+      return Image.network(
+        normalizedUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (ctx, err, trace) {
+          return Image.asset(_defaultShopBackground, fit: BoxFit.cover);
+        },
+      );
+    }
+    return Image.asset(_defaultShopBackground, fit: BoxFit.cover);
+  }
+
+  String _resolveShopImageUrl(Map<String, dynamic> data, String shopName) {
+    final candidateFields = <String>[
+      'imageUrl',
+      'profileImageUrl',
+      'shopImageUrl',
+      'photoUrl',
+      'avatarUrl',
+    ];
+
+    for (final field in candidateFields) {
+      final value = (data[field] as String?)?.trim() ?? '';
+      if (value.isNotEmpty) {
+        return value;
+      }
+    }
+
+    // Specific shop fallback: use local profile-style banner if no URL exists yet.
+    if (shopName.toLowerCase().contains('cakerie')) {
+      return 'assets/images/background.png';
+    }
+
+    return '';
+  }
+
+  double _buildMockRating(String seed) {
+    final score = seed.codeUnits.fold<int>(0, (total, unit) => total + unit);
+    final normalized = 41 + (score % 9);
+    return normalized / 10;
+  }
+
+  int _buildMockOrders(String seed) {
+    final score = seed.codeUnits.fold<int>(0, (total, unit) => total + (unit * 2));
+    return 2500 + (score % 48000);
   }
 }
 

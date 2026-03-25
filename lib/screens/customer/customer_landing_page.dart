@@ -549,6 +549,7 @@ class CustomerLandingPage extends StatelessWidget {
                       ? (data['description'] as String).trim()
                       : 'Tap to browse items';
                   final isOpen = data['isActive'] as bool? ?? true;
+                  final imageUrl = (data['imageUrl'] as String?) ?? '';
 
                   return _buildOutletCard(
                     context,
@@ -558,6 +559,7 @@ class CustomerLandingPage extends StatelessWidget {
                     isOpen: isOpen,
                     colorIndex: index,
                     isWideScreen: isWideScreen,
+                    imageUrl: imageUrl,
                   );
                 },
               );
@@ -577,27 +579,20 @@ class CustomerLandingPage extends StatelessWidget {
     required bool isOpen,
     required int colorIndex,
     required bool isWideScreen,
+    required String imageUrl,
   }
   ) {
-    const colors = [
-      Colors.deepOrange,
-      Colors.teal,
-      Colors.indigo,
-      Colors.green,
-      Colors.brown,
-      Colors.pink,
-    ];
-    const icons = [
-      Icons.storefront,
-      Icons.local_dining,
-      Icons.ramen_dining,
-      Icons.local_cafe,
-      Icons.lunch_dining,
-      Icons.restaurant,
+    const defaultImageUrls = [
+      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1585521537745-68823e6ce39f?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1570080166338-1c2e4a0db3e3?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1564236052573-4ca76fc3e810?w=800&h=600&fit=crop',
     ];
 
-    final outletColor = colors[colorIndex % colors.length];
-    final outletIcon = icons[colorIndex % icons.length];
+    final rating = 4.0 + (colorIndex * 0.2) % 1.5;
+    final orderedCount = 2500 + (colorIndex * 1000);
+    final backgroundImage = imageUrl.isNotEmpty ? imageUrl : defaultImageUrls[colorIndex % defaultImageUrls.length];
 
     return GestureDetector(
       onTap: isOpen
@@ -614,55 +609,82 @@ class CustomerLandingPage extends StatelessWidget {
             }
           : null,
       child: Container(
-        padding: EdgeInsets.all(isWideScreen ? 20 : 16),
+        height: isWideScreen ? 320 : 280,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.12),
+              color: Colors.black.withOpacity(0.15),
               blurRadius: 12,
-              offset: const Offset(0, 4),
+              offset: const Offset(0, 6),
             ),
           ],
-          border: Border.all(
-            color: isOpen ? Colors.grey.shade100 : Colors.grey.shade300,
-          ),
         ),
-        child: Opacity(
-          opacity: isOpen ? 1.0 : 0.6,
-          child: Row(
-            children: [
-              // Outlet Icon
-              Container(
-                padding: EdgeInsets.all(isWideScreen ? 16 : 12),
-                decoration: BoxDecoration(
-                  color: outletColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  outletIcon,
-                  size: isWideScreen ? 36 : 28,
-                  color: outletColor,
+        child: Stack(
+          children: [
+            // Background image
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.network(
+                  backgroundImage,
+                  fit: BoxFit.cover,
+                  errorBuilder: (ctx, err, trace) => Container(
+                    color: Colors.grey.shade300,
+                    child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                  ),
                 ),
               ),
-              SizedBox(width: isWideScreen ? 16 : 12),
+            ),
 
-              // Outlet Details
-              Expanded(
+            // Gradient overlay
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.25),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Bottom info panel
+            Positioned(
+              left: 12,
+              right: 12,
+              bottom: 12,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Row(
                       children: [
                         Expanded(
                           child: Text(
                             shopName,
-                            style: TextStyle(
+                            style: GoogleFonts.poppins(
                               fontSize: isWideScreen ? 18 : 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                              fontWeight: FontWeight.w700,
+                              height: 1.05,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -670,13 +692,10 @@ class CustomerLandingPage extends StatelessWidget {
                         ),
                         if (!isOpen)
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade400,
-                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.red.shade400,
+                              borderRadius: BorderRadius.circular(6),
                             ),
                             child: const Text(
                               'Closed',
@@ -689,38 +708,68 @@ class CustomerLandingPage extends StatelessWidget {
                           ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      isOpen ? 'Open now' : 'Currently unavailable',
-                      style: TextStyle(
-                        fontSize: isWideScreen ? 14 : 12,
-                        color: Colors.grey.shade600,
-                      ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF32A852),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.star_rounded, color: Colors.white, size: 14),
+                              const SizedBox(width: 2),
+                              Text(
+                                rating.toStringAsFixed(2),
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '$orderedCount ordered',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: isWideScreen ? 13 : 11,
-                        color: outletColor,
-                        fontWeight: FontWeight.w500,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade400, width: 1),
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      child: Text(
+                        subtitle,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey.shade800,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
               ),
-
-              // Arrow
-              if (isOpen)
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: Colors.grey.shade400,
-                ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

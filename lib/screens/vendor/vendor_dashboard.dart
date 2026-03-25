@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:qless/widgets/floating_nav_bar.dart';
-=======
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/order_model.dart';
 
@@ -45,9 +44,8 @@ class _VendorDashboardState extends State<VendorDashboard> {
     }
 
     return Scaffold(
-
       extendBody: true,
-      body: _screens[_selectedIndex],
+      body: currentScreen,
       bottomNavigationBar: FloatingNavBar(
         selectedIndex: _selectedIndex,
         onItemSelected: (index) => setState(() => _selectedIndex = index),
@@ -63,34 +61,9 @@ class _VendorDashboardState extends State<VendorDashboard> {
             label: 'Items',
           ),
           FloatingNavBarItem(
-            icon: Icons.receipt_long_outlined,
-            selectedIcon: Icons.receipt_long,
-            label: 'Orders',
-          ),
-          FloatingNavBarItem(
             icon: Icons.analytics_outlined,
             selectedIcon: Icons.analytics,
             label: 'Stats',
-=======
-      body: currentScreen,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) => setState(() => _selectedIndex = index),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.store_outlined),
-            selectedIcon: Icon(Icons.store),
-            label: 'Store',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.analytics_outlined),
-            selectedIcon: Icon(Icons.analytics),
-            label: 'Analytics',
           ),
           FloatingNavBarItem(
             icon: Icons.person_outline,
