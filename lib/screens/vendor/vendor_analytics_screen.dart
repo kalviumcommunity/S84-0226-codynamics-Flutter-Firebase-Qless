@@ -1,273 +1,261 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../providers/vendor_provider.dart';
+import 'package:intl/intl.dart';
 
-/// Analytics dashboard showing vendor statistics
-class VendorAnalyticsScreen extends StatelessWidget {
+class VendorAnalyticsScreen extends StatefulWidget {
   const VendorAnalyticsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Analytics',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: Colors.deepOrange,
-        foregroundColor: Colors.white,
-        automaticallyImplyLeading: false,
-      ),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: VendorProvider().getVendorAnalytics(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Error loading analytics',
-                style: GoogleFonts.poppins(color: Colors.red),
-              ),
-            );
-          }
-
-          final data = snapshot.data ?? {};
-          final totalOrders = data['totalOrders'] ?? 0;
-          final totalRevenue = data['totalRevenue'] ?? 0.0;
-          final todayOrders = data['todayOrders'] ?? 0;
-          final mostOrderedItem = data['mostOrderedItem'] ?? 'N/A';
-          final mostOrderedCount = data['mostOrderedCount'] ?? 0;
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              // Trigger rebuild by returning future
-              await Future.delayed(const Duration(milliseconds: 100));
-            },
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                // Summary cards
-                Row(
-                  children: [
-                    Expanded(
-                      child: _StatCard(
-                        icon: Icons.receipt_long,
-                        label: 'Total Orders',
-                        value: totalOrders.toString(),
-                        color: Colors.blue,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _StatCard(
-                        icon: Icons.currency_rupee,
-                        label: 'Total Revenue',
-                        value: '₹${totalRevenue.toStringAsFixed(0)}',
-                        color: Colors.green,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _StatCard(
-                        icon: Icons.today,
-                        label: 'Today\'s Orders',
-                        value: todayOrders.toString(),
-                        color: Colors.orange,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _StatCard(
-                        icon: Icons.star,
-                        label: 'Avg Order Value',
-                        value: totalOrders > 0
-                            ? '₹${(totalRevenue / totalOrders).toStringAsFixed(0)}'
-                            : '₹0',
-                        color: Colors.purple,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 24),
-
-                // Most ordered item
-                Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.trending_up, color: Colors.deepOrange),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Most Ordered Item',
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          mostOrderedItem,
-                          style: GoogleFonts.poppins(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.deepOrange,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Ordered $mostOrderedCount times',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Recent activity
-                Text(
-                  'Recent Activity',
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const _RecentOrdersList(),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
+  State<VendorAnalyticsScreen> createState() => _VendorAnalyticsScreenState();
 }
 
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
+class _VendorAnalyticsScreenState extends State<VendorAnalyticsScreen> {
+  final String _vendorId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
-  const _StatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
+  Map<int, int> _ordersPerHour = {};
+  double _totalRevenue = 0.0;
+  int _totalOrders = 0;
+  double _averageWaitTime = 0.0;
+  bool _isLoading = true;
 
   @override
-  Widget build(BuildContext context) {
+  void initState() {
+    super.initState();
+    _fetchAnalyticsData();
+  }
+
+  Future<void> _fetchAnalyticsData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('orders')
+          .where('vendorId', isEqualTo: _vendorId)
+          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart))
+          .get();
+
+      Map<int, int> hourlyData = {};
+      double revenue = 0.0;
+      int ordersCount = 0;
+      int totalWaitTime = 0;
+      int completedOrders = 0;
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final timestamp = data['createdAt'] as Timestamp?;
+        final amount = (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
+        final status = data['status'] as String? ?? 'pending';
+        
+        if (timestamp != null) {
+          final orderTime = timestamp.toDate();
+          
+          hourlyData[orderTime.hour] = (hourlyData[orderTime.hour] ?? 0) + 1;
+          revenue += amount;
+          ordersCount++;
+
+          if (status == 'completed' || status == 'ready') {
+             totalWaitTime += (data['estimatedWaitTime'] as int? ?? 5);
+             completedOrders++;
+          }
+        }
+      }
+
+      setState(() {
+        _ordersPerHour = hourlyData;
+        _totalRevenue = revenue;
+        _totalOrders = ordersCount;
+        _averageWaitTime = completedOrders > 0 ? (totalWaitTime / completedOrders) : 0.0;
+        _isLoading = false;
+      });
+
+    } catch (e) {
+      debugPrint("Error fetching analytics: $e");
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  String _getPeakHour() {
+    if (_ordersPerHour.isEmpty) return 'N/A';
+    int maxHour = _ordersPerHour.keys.first;
+    for (var hour in _ordersPerHour.keys) {
+      if (_ordersPerHour[hour]! > _ordersPerHour[maxHour]!) {
+        maxHour = hour;
+      }
+    }
+    final dateTime = DateTime(2023, 1, 1, maxHour);
+    return DateFormat('h a').format(dateTime);
+  }
+
+  Widget _buildStatCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, color: color, size: 32),
             const SizedBox(height: 12),
             Text(
               value,
-              style: GoogleFonts.poppins(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+              style: GoogleFonts.righteous(fontSize: 22, color: Colors.black87),
             ),
             const SizedBox(height: 4),
             Text(
-              label,
-              style: GoogleFonts.poppins(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              title,
+              style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
       ),
     );
   }
-}
 
-class _RecentOrdersList extends StatelessWidget {
-  const _RecentOrdersList();
+  Widget _buildBarChart() {
+    if (_ordersPerHour.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Text("No orders today to display chart.", style: GoogleFonts.poppins()),
+        ),
+      );
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    final vendorId = FirebaseAuth.instance.currentUser?.uid ?? '';
-    
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance
-          .collection('orders')
-          .where('vendorId', isEqualTo: vendorId)
-          .orderBy('createdAt', descending: true)
-          .limit(5)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                'No recent orders',
-                style: GoogleFonts.poppins(color: Colors.grey[600]),
-              ),
-            ),
-          );
-        }
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: (_ordersPerHour.keys.toList()..sort()).map((hour) {
+            final int count = _ordersPerHour[hour]!;
+            final int maxCount = _ordersPerHour.values.reduce((a, b) => a > b ? a : b);
+            final double widthRatio = count / maxCount;
+            
+            final dateTime = DateTime(2023, 1, 1, hour);
+            final hrLabel = DateFormat('ha').format(dateTime);
 
-        return Column(
-          children: snapshot.data!.docs.map((doc) {
-            final data = doc.data();
-            final token = data['tokenNumber'] ?? 0;
-            final total = (data['totalAmount'] as num?)?.toDouble() ?? 0.0;
-            final status = data['status'] ?? 'pending';
-
-            return Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                leading: CircleAvatar(
-                  child: Text('#$token'),
-                ),
-                title: Text(
-                  '₹${total.toStringAsFixed(2)}',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                ),
-                subtitle: Text(
-                  status.toUpperCase(),
-                  style: GoogleFonts.poppins(fontSize: 12),
-                ),
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 50,
+                    child: Text(hrLabel, style: GoogleFonts.poppins(fontSize: 12)),
+                  ),
+                  Expanded(
+                    child: FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: widthRatio,
+                      child: Container(
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: Colors.deepOrange.withValues(alpha: 0.8),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text('$count', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                ],
               ),
             );
           }).toList(),
-        );
-      },
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Analytics', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        backgroundColor: Colors.deepOrange,
+        foregroundColor: Colors.white,
+        automaticallyImplyLeading: false,
+      ),
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator())
+        : RefreshIndicator(
+            onRefresh: _fetchAnalyticsData,
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                Text(
+                  "Today's Overview",
+                  style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        title: 'Total Revenue',
+                        value: '₹${_totalRevenue.toStringAsFixed(2)}',
+                        icon: Icons.currency_rupee,
+                        color: Colors.green,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildStatCard(
+                        title: 'Orders Today',
+                        value: '$_totalOrders',
+                        icon: Icons.receipt_long,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        title: 'Avg Wait Time',
+                        value: '~${_averageWaitTime.toStringAsFixed(0)} min',
+                        icon: Icons.timer,
+                        color: Colors.orange,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildStatCard(
+                        title: 'Peak Hour',
+                        value: _getPeakHour(),
+                        icon: Icons.trending_up,
+                        color: Colors.purple,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  "Hourly Order Volume",
+                  style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 16),
+                _buildBarChart(),
+              ],
+            ),
+          ),
     );
   }
 }

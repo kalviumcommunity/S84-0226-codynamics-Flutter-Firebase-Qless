@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/order_model.dart';
 import '../../providers/vendor_provider.dart';
+import '../../services/queue_service.dart';
 
 /// Screen for viewing and managing vendor orders with filters
 class VendorOrdersScreen extends StatefulWidget {
@@ -335,7 +336,20 @@ class _OrderCard extends StatelessWidget {
     OrderStatus newStatus,
   ) async {
     final provider = VendorProvider();
-    await provider.updateOrderStatus(orderId, newStatus);
+    
+    // Call the specific Queue Service methods to keep queue pointers accurate
+    if (newStatus == OrderStatus.ready) {
+      if (order.vendorId.isNotEmpty && order.tokenNumber != null) {
+         final queueService = QueueService();
+         await queueService.advanceQueue(order.vendorId, orderId, order.tokenNumber!);
+      }
+    } else if (newStatus == OrderStatus.completed) {
+      final queueService = QueueService();
+      await queueService.completeOrder(orderId);
+    } else {
+      // For all other statuses, keep using the existing provider method
+      await provider.updateOrderStatus(orderId, newStatus);
+    }
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

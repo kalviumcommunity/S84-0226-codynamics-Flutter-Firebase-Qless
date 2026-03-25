@@ -35,7 +35,7 @@ class _VendorDashboardState extends State<VendorDashboard> {
         currentScreen = const ManageItemsScreen();
         break;
       case 2:
-        currentScreen = const _NotificationsScreen();
+        currentScreen = const VendorAnalyticsScreen();
         break;
       case 3:
         currentScreen = const VendorProfileEditScreen();
@@ -88,9 +88,9 @@ class _VendorDashboardState extends State<VendorDashboard> {
             label: 'Store',
           ),
           NavigationDestination(
-            icon: Icon(Icons.notifications_outlined),
-            selectedIcon: Icon(Icons.notifications),
-            label: 'Notifications',
+            icon: Icon(Icons.analytics_outlined),
+            selectedIcon: Icon(Icons.analytics),
+            label: 'Analytics',
           ),
           FloatingNavBarItem(
             icon: Icons.person_outline,

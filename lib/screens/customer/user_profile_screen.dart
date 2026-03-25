@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/storage_service.dart';
+import 'my_orders_screen.dart';
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
@@ -198,7 +199,28 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const MyOrdersScreen()),
+                  );
+                },
+                icon: const Icon(Icons.receipt_long, color: Colors.deepOrange),
+                label: Text('My Orders', style: GoogleFonts.poppins(fontSize: 16, color: Colors.deepOrange)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  side: const BorderSide(color: Colors.deepOrange),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: () async {
                 await FirebaseAuth.instance.signOut();

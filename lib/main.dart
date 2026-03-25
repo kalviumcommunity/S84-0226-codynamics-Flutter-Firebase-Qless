@@ -10,10 +10,6 @@ import 'providers/cart_provider.dart';
 import 'firebase_options.dart';
 import 'screens/auth/auth_screen.dart';
 import 'screens/admin/admin_dashboard.dart';
-
-import 'screens/admin/super_admin_dashboard.dart';
-=======
-
 import 'screens/customer/customer_landing_page.dart';
 import 'screens/customer/customer_main_screen.dart';
 import 'screens/vendor/vendor_dashboard.dart';
@@ -25,18 +21,29 @@ import 'screens/devtools_demo.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await dotenv.load(fileName: ".env");
+  // Load .env file if available - continue even if missing
+  try {
+    await dotenv.load(fileName: ".env");
+    print('✅ Loaded .env file successfully');
+  } catch (e) {
+    print('⚠️ .env file not found or error loading: $e - Continuing without .env');
+  }
 
+  // Initialize Firebase - continue even if it fails
   try {
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+      print('✅ Firebase initialized successfully');
     }
   } catch (e) {
     // Firebase app already initialized, which can happen during hot reload
-    if (!e.toString().contains('duplicate-app')) {
-      rethrow;
+    if (e.toString().contains('duplicate-app')) {
+      print('ℹ️ Firebase already initialized (duplicate-app)');
+    } else {
+      print('⚠️ Firebase initialization failed: $e');
+      print('⚠️ App will continue but some features may not work.');
     }
   }
 
@@ -74,7 +81,7 @@ class QlessApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
         useMaterial3: true,
-        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme)
+        textTheme: GoogleFonts.poppinsTextTheme(ThemeData.light().textTheme)
             .copyWith(
               displayLarge: GoogleFonts.poppins(
                 fontWeight: FontWeight.bold,
@@ -190,8 +197,6 @@ class _RoleBasedHome extends StatelessWidget {
 
   Future<String> _resolveRole() async {
     try {
-      print('🔍 Resolving role for UID: ${user.uid}');
-=======
       debugPrint('🔍 Starting role resolution for user: ${user.uid}');
 
       // Fast timeout: check user document quickly, fall back to default user role to prevent startup hang
@@ -202,24 +207,11 @@ class _RoleBasedHome extends StatelessWidget {
           .timeout(const Duration(seconds: 2));
 
       if (!doc.exists) {
-
-        print('⚠️ User document does not exist');
-=======
         debugPrint('❌ No user document found for ${user.uid}, defaulting to user');
-
         return 'user';
       }
 
       final data = doc.data();
-
-      print('📄 User data: $data');
-      final role = data?['role'] as String?;
-      print('👤 Role found: $role');
-      
-      if (role == 'admin' || role == 'vendor' || role == 'user') {
-        print('✅ Returning role: $role');
-        return role!;
-
       debugPrint('📄 User document data: $data');
       
       final role = data?['role'] as String?;
@@ -241,7 +233,6 @@ class _RoleBasedHome extends StatelessWidget {
           debugPrint('⚠️ Unknown role value: "$role", defaulting to user');
           return 'user';
         }
-
       }
 
       // Fallback: check for vendor-specific fields
@@ -250,24 +241,13 @@ class _RoleBasedHome extends StatelessWidget {
       debugPrint('🔍 Checking vendor fields - shopName: "$shopName", ownerName: "$ownerName"');
       
       final hasVendorFields =
-
-          (data?['shopName'] as String?)?.isNotEmpty == true ||
-              (data?['ownerName'] as String?)?.isNotEmpty == true;
-      final fallbackRole = hasVendorFields ? 'vendor' : 'user';
-      print('⚠️ Using fallback role: $fallbackRole');
-      return fallbackRole;
-    } catch (e) {
-      print('❌ Error resolving role: $e');
-
           (shopName?.isNotEmpty == true) || (ownerName?.isNotEmpty == true);
       final fallbackRole = hasVendorFields ? 'vendor' : 'user';
       debugPrint('✅ Resolved role from fields: $fallbackRole');
       return fallbackRole;
     } catch (e) {
       debugPrint('❌ Error resolving role: $e');
-
       // In case of timeout or offline without cache, default to user
-      return 'user';
       return 'user';
     }
   }
@@ -284,16 +264,6 @@ class _RoleBasedHome extends StatelessWidget {
         }
 
         final role = snapshot.data ?? 'user';
-
-        print('🚀 Routing to screen for role: $role');
-        
-        if (role == 'admin') {
-          print('✅ Navigating to SuperAdminDashboard');
-          return const SuperAdminDashboard();
-        }
-        if (role == 'vendor') {
-          print('✅ Navigating to VendorDashboard (Vendor)');
-
         debugPrint('🚀 Routing to: $role dashboard for user: ${user.uid}');
         
         // Route based on role - STRICT matching
@@ -302,21 +272,11 @@ class _RoleBasedHome extends StatelessWidget {
           return const AdminDashboard();
         } else if (role == 'vendor') {
           debugPrint('✅ Loading VendorDashboard');
-
           return const VendorDashboard();
         } else {
           debugPrint('✅ Loading CustomerLandingPage');
           return const CustomerLandingPage(isAuthenticatedUser: true);
         }
-
-        print('✅ Navigating to CustomerMainScreen');
-        return const CustomerMainScreen();
-
-
-        print('✅ Navigating to CustomerLandingPage');
-        return const CustomerLandingPage(isAuthenticatedUser: true);
-
-
       },
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,8 +9,11 @@ import 'package:qless/screens/responsive_home.dart';
 import 'package:qless/screens/customer/shop_menu_screen.dart';
 import 'package:qless/services/firestore_service.dart';
 import 'package:qless/screens/customer/data_seeder_util.dart';
+import 'order_tracking_screen.dart';
+import 'my_orders_screen.dart';
 
 import 'package:qless/screens/customer/user_dashboard_screen.dart';
+import '../../widgets/live_queue_widget.dart';
 
 class CustomerLandingPage extends StatelessWidget {
   final bool isAuthenticatedUser;
@@ -119,32 +123,46 @@ class CustomerLandingPage extends StatelessWidget {
               ],
             ),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isWideScreen = constraints.maxWidth > 600;
-            final isDesktop = constraints.maxWidth > 900;
+        child: Stack(
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isWideScreen = constraints.maxWidth > 600;
+                final isDesktop = constraints.maxWidth > 900;
 
-            return SingleChildScrollView(
-              child: Column(
-                children: [
-                  // Hero Section
-                  _buildHeroSection(context, isWideScreen, isDesktop),
+                return SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      // Hero Section
+                      _buildHeroSection(context, isWideScreen, isDesktop),
 
-                  // Food Outlets Section
-                  _buildFoodOutletsSection(context, isWideScreen, isDesktop),
+                      // Food Outlets Section
+                      _buildFoodOutletsSection(context, isWideScreen, isDesktop),
 
-                  // Features Section
-                  _buildFeaturesSection(context, isWideScreen, isDesktop),
+                      // Features Section
+                      _buildFeaturesSection(context, isWideScreen, isDesktop),
 
-                  // How It Works Section
-                  _buildHowItWorksSection(context, isWideScreen, isDesktop),
+                      // How It Works Section
+                      _buildHowItWorksSection(context, isWideScreen, isDesktop),
 
-                  // CTA Section
-                  _buildCTASection(context, isWideScreen),
-                ],
-              ),
-            );
-          },
+                      // CTA Section
+                      _buildCTASection(context, isWideScreen),
+                      
+                      const SizedBox(height: 100), // padding for the floating widget
+                    ],
+                  ),
+                );
+              },
+            ),
+            
+            // The Live Queue Widget pinned to the bottom of the screen
+            const Positioned(
+              bottom: 16,
+              left: 16,
+              right: 16,
+              child: LiveQueueWidget(),
+            ),
+          ],
         ),
       ),
     );
@@ -408,6 +426,42 @@ class CustomerLandingPage extends StatelessWidget {
             ],
           ),
         ),
+
+        // My Orders Button (only if authenticated)
+        if (isAuthenticatedUser)
+          OutlinedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MyOrdersScreen()),
+              );
+            },
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(
+                horizontal: isWideScreen ? 32 : 24,
+                vertical: isWideScreen ? 18 : 14,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+              side: const BorderSide(color: Colors.white, width: 2),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.receipt_long, size: isWideScreen ? 24 : 20),
+                SizedBox(width: isWideScreen ? 12 : 8),
+                Text(
+                  'My Orders',
+                  style: TextStyle(
+                    fontSize: isWideScreen ? 18 : 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }
@@ -1192,6 +1246,51 @@ class CustomerLandingPage extends StatelessWidget {
               ],
             ),
           ),
+
+          // My Orders Button (only if authenticated)
+          if (isAuthenticatedUser) ...[
+            const SizedBox(height: 12),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: isWideScreen ? 500 : double.infinity,
+              ),
+              child: OutlinedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const MyOrdersScreen()),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.deepOrange,
+                  padding: EdgeInsets.symmetric(
+                    vertical: isWideScreen ? 18 : 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  side: const BorderSide(
+                    color: Colors.deepOrange,
+                    width: 2,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.receipt_long),
+                    const SizedBox(width: 8),
+                    Text(
+                      'My Orders',
+                      style: TextStyle(
+                        fontSize: isWideScreen ? 17 : 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           SizedBox(height: isWideScreen ? 40 : 28),
 
           // Footer
@@ -1207,71 +1306,136 @@ class CustomerLandingPage extends StatelessWidget {
     );
   }
 
+  Future<String?> _findOrderByToken(String tokenInput) async {
+    String token = tokenInput.toUpperCase().trim();
+    if (!token.startsWith('T')) {
+      token = 'T${token.padLeft(3, '0')}';
+    }
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('orders')
+        .where('token', isEqualTo: token)
+        .limit(1)
+        .get();
+
+    return snapshot.docs.isNotEmpty ? snapshot.docs.first.id : null;
+  }
+
   void _showTrackOrderDialog(BuildContext context) {
+    final tokenController = TextEditingController();
+    bool isLoading = false;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.confirmation_number, color: Colors.orange.shade600),
-            const SizedBox(width: 8),
-            const Text('Track Your Order'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Enter your token number to check order status',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              keyboardType: TextInputType.number,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 8,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Icon(Icons.confirmation_number, color: Colors.orange.shade600),
+              const SizedBox(width: 8),
+              const Text('Track Your Order'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Enter your token number to check order status',
+                style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
-              maxLength: 3,
-              decoration: InputDecoration(
-                hintText: '000',
-                counterText: '',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+              const SizedBox(height: 16),
+              TextField(
+                controller: tokenController,
+                textAlign: TextAlign.center,
+                textCapitalization: TextCapitalization.characters,
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 8,
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: Colors.orange.shade600,
-                    width: 2,
+                maxLength: 4,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9Tt]')),
+                ],
+                decoration: InputDecoration(
+                  hintText: 'T001',
+                  counterText: '',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Colors.orange.shade600,
+                      width: 2,
+                    ),
                   ),
                 ),
               ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      final input = tokenController.text.trim();
+                      if (input.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please enter a token number')),
+                        );
+                        return;
+                      }
+
+                      setState(() => isLoading = true);
+
+                      final orderId = await _findOrderByToken(input);
+
+                      if (!dialogContext.mounted) return;
+
+                      setState(() => isLoading = false);
+
+                      if (orderId != null) {
+                        Navigator.pop(dialogContext);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => OrderTrackingScreen(orderId: orderId),
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Order not found. Please check your token.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepOrange,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Track', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // TODO: Implement order tracking
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.deepOrange,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('Track', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
   }
