@@ -1356,58 +1356,60 @@ class CustomerLandingPage extends StatelessWidget {
   }
 
   Future<String?> _findOrderByToken(String tokenInput) async {
-    String token = tokenInput.toUpperCase().trim();
-    debugPrint('🔍 Token Search - Raw input: "$tokenInput"');
-    debugPrint('🔍 Token Search - After trim & uppercase: "$token"');
-    
-    // Handle case where user enters just the digits
-    if (!token.startsWith('T')) {
-      token = 'T${token.padLeft(6, '0')}';
-      debugPrint('🔍 Token Search - Added T prefix: "$token"');
-    }
-    
-    // Ensure token is always exactly 7 characters (T + 6 digits)
-    if (token.length < 7) {
-      // Pad with zeros after T if needed
-      final digitPart = token.substring(1); // Remove T
-      token = 'T${digitPart.padLeft(6, '0')}';
-      debugPrint('🔍 Token Search - Padded to 6 digits: "$token"');
-    }
-
-    debugPrint('🔍 Token Search - Final search token: "$token"');
+    String searchToken = tokenInput.toUpperCase().trim();
+    debugPrint('🔍 Searching for token: "$searchToken"');
 
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('orders')
-          .where('token', isEqualTo: token)
-          .limit(1)
-          .get();
-
-      debugPrint('🔍 Token Search - Found ${snapshot.docs.length} order(s)');
-      
-      if (snapshot.docs.isNotEmpty) {
-        final orderId = snapshot.docs.first.id;
-        final orderData = snapshot.docs.first.data();
-        debugPrint('✅ Order found! ID: $orderId, Token in DB: ${orderData['token']}');
-        return orderId;
-      } else {
-        debugPrint('❌ No orders found with token: $token');
-        
-        // Debug: Try to find any orders to verify collection is accessible
-        final allOrders = await FirebaseFirestore.instance
-            .collection('orders')
-            .limit(5)
-            .get();
-        debugPrint('📊 Sample token values in database:');
-        for (var doc in allOrders.docs) {
-          final data = doc.data();
-          debugPrint('  - Token: ${data['token']}, Status: ${data['status']}');
-        }
-        
+      // SOLUTION: Instead of using .where() which needs indexes,
+      // fetch user's orders directly and search locally
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        debugPrint('❌ User not logged in');
         return null;
       }
+
+      // Get ALL orders for this user
+      final snapshot = await FirebaseFirestore.instance
+          .collection('orders')
+          .where('userId', isEqualTo: user.uid)
+          .get();
+
+      debugPrint('📊 Found ${snapshot.docs.length} total orders for user');
+
+      // Search through them locally
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final tokenInDB = data['token']?.toString() ?? '';
+        final status = data['status'] ?? 'unknown';
+        
+        debugPrint('  Comparing: "$tokenInDB" vs "$searchToken"');
+
+        // Token exact match
+        if (tokenInDB.toUpperCase() == searchToken) {
+          debugPrint('✅ EXACT MATCH! Token: "$tokenInDB", Order ID: ${doc.id}');
+          return doc.id;
+        }
+        
+        // Try matching just the digits (without T)
+        final tokenDigits = tokenInDB.replaceAll(RegExp(r'[^0-9]'), '');
+        final searchDigits = searchToken.replaceAll(RegExp(r'[^0-9]'), '');
+        
+        if (tokenDigits == searchDigits && tokenDigits.isNotEmpty) {
+          debugPrint('✅ DIGIT MATCH! Token: "$tokenInDB", Order ID: ${doc.id}');
+          return doc.id;
+        }
+      }
+
+      debugPrint('❌ No matching token found in user orders');
+      debugPrint('💡 Orders with tokens:');
+      for (var doc in snapshot.docs) {
+        final tokenInDB = doc.data()['token'] ?? 'N/A';
+        debugPrint('  - "$tokenInDB"');
+      }
+      
+      return null;
     } catch (e) {
-      debugPrint('❌ Error searching for token: $e');
+      debugPrint('❌ Error searching orders: $e');
       return null;
     }
   }
@@ -1428,43 +1430,127 @@ class CustomerLandingPage extends StatelessWidget {
               const Text('Track Your Order'),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Enter your token number to check order status',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: tokenController,
-                textAlign: TextAlign.center,
-                textCapitalization: TextCapitalization.characters,
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 8,
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Enter your token number to check order status',
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
-                maxLength: 7,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9Tt]')),
-                ],
-                decoration: InputDecoration(
-                  hintText: 'T000001',
-                  counterText: '',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: tokenController,
+                  textAlign: TextAlign.center,
+                  textCapitalization: TextCapitalization.characters,
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 8,
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: Colors.orange.shade600,
-                      width: 2,
+                  maxLength: 7,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9Tt]')),
+                  ],
+                  decoration: InputDecoration(
+                    hintText: 'T000001',
+                    counterText: '',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Colors.orange.shade600,
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                const Text(
+                  'Or tap a recent order:',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                FutureBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  // Simplified: Fetch all user orders without orderBy (requires composite index)
+                  // Filter and sort locally instead
+                  future: FirebaseFirestore.instance
+                      .collection('orders')
+                      .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+                      .get(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                      // Filter for active status and sort locally
+                      final activeOrders = snapshot.data!.docs
+                          .where((doc) {
+                            final status = doc['status'];
+                            return status == 'pending' || status == 'cooking' || status == 'ready';
+                          })
+                          .toList();
+                      
+                      // Sort by createdAt descending
+                      activeOrders.sort((a, b) {
+                        final aTime = (a['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+                        final bTime = (b['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+                        return bTime.compareTo(aTime);
+                      });
+                      
+                      // Limit to 3
+                      final recentOrders = activeOrders.take(3).toList();
+                      
+                      if (recentOrders.isEmpty) {
+                        return const SizedBox.shrink();
+                      }
+                      
+                      return Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: recentOrders.map((doc) {
+                          final token = doc['token']?.toString() ?? 'N/A';
+                          final status = doc['status'] ?? 'unknown';
+                          return GestureDetector(
+                            onTap: () {
+                              tokenController.text = token;
+                              setState(() {}); // Update to show selected token
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.deepOrange),
+                                borderRadius: BorderRadius.circular(8),
+                                color: Colors.deepOrange.withValues(alpha: 0.1),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    token,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  Text(
+                                    status,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -1501,9 +1587,10 @@ class CustomerLandingPage extends StatelessWidget {
                         );
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Order not found. Please check your token.'),
+                          SnackBar(
+                            content: Text('Order not found. You searched for: "$input"'),
                             backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 3),
                           ),
                         );
                       }
