@@ -56,9 +56,9 @@ class _AvailableShopsScreenState extends State<AvailableShopsScreen> {
       ),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance
-            .collection('vendors')
+            .collection('users')
+            .where('role', isEqualTo: 'vendor')
             .where('isActive', isEqualTo: true)
-            .orderBy('shopName')
             .snapshots(),
         builder: (context, snapshot) {
           // Handle loading state
@@ -77,15 +77,24 @@ class _AvailableShopsScreenState extends State<AvailableShopsScreen> {
                   Icon(Icons.error_outline, size: 64, color: Colors.red),
                   const SizedBox(height: 16),
                   Text(
-                    'Error loading shops',
-                    style: GoogleFonts.poppins(fontSize: 16, color: Colors.red),
+                    'Error loading shops: ${snapshot.error}',
+                    style: GoogleFonts.poppins(fontSize: 14, color: Colors.red),
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
             );
           }
 
-          final allShops = snapshot.data?.docs ?? [];
+          var allShops = snapshot.data?.docs ?? [];
+          
+          // Sort by shop name locally (client-side) to avoid Firestore index requirement
+          allShops.sort((a, b) {
+            final nameA = (a.data()['shopName'] ?? '').toString();
+            final nameB = (b.data()['shopName'] ?? '').toString();
+            return nameA.compareTo(nameB);
+          });
+          
           final cuisines = _extractCuisines(allShops).toList()..sort();
           final filteredShops = _filterShops(allShops);
 
@@ -219,7 +228,6 @@ class _AvailableShopsScreenState extends State<AvailableShopsScreen> {
       ),
     );
   }
-}
 }
 
 /// Individual Shop Card Widget

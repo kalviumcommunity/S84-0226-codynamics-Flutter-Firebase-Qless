@@ -7,12 +7,12 @@ import 'package:qless/screens/auth/auth_screen.dart';
 import 'package:qless/screens/admin/admin_dashboard.dart';
 import 'package:qless/screens/responsive_home.dart';
 import 'package:qless/screens/customer/shop_menu_screen.dart';
+import 'package:qless/screens/customer/available_shops_screen.dart';
 import 'package:qless/services/firestore_service.dart';
 import 'package:qless/screens/customer/data_seeder_util.dart';
 import 'order_tracking_screen.dart';
 import 'my_orders_screen.dart';
 
-import 'package:qless/screens/customer/user_dashboard_screen.dart';
 import '../../widgets/live_queue_widget.dart';
 
 class CustomerLandingPage extends StatelessWidget {
@@ -359,42 +359,6 @@ class CustomerLandingPage extends StatelessWidget {
       runSpacing: 12,
       alignment: WrapAlignment.center,
       children: [
-        // Main CTA Button
-        ElevatedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const UserDashboardScreen()),
-            );
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.deepOrange,
-            padding: EdgeInsets.symmetric(
-              horizontal: isWideScreen ? 48 : 32,
-              vertical: isWideScreen ? 18 : 14,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
-            ),
-            elevation: 8,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.fastfood, size: isWideScreen ? 24 : 20),
-              SizedBox(width: isWideScreen ? 12 : 8),
-              Text(
-                'Order Now',
-                style: TextStyle(
-                  fontSize: isWideScreen ? 18 : 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
-
         // Track Order Button
         OutlinedButton(
           onPressed: () {
@@ -528,40 +492,83 @@ class CustomerLandingPage extends StatelessWidget {
                 );
               }
 
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: childAspectRatio,
-                ),
-                itemCount: docs.length,
-                itemBuilder: (context, index) {
-                  final data = docs[index].data();
-                  final shopName = (data['shopName'] as String?)?.trim().isNotEmpty == true
-                      ? (data['shopName'] as String).trim()
-                      : ((data['ownerName'] as String?)?.trim().isNotEmpty == true
-                          ? (data['ownerName'] as String).trim()
-                          : 'Vendor');
-                  final subtitle = (data['description'] as String?)?.trim().isNotEmpty == true
-                      ? (data['description'] as String).trim()
-                      : 'Tap to browse items';
-                  final isOpen = data['isActive'] as bool? ?? true;
-                  final imageUrl = (data['imageUrl'] as String?) ?? '';
+              return Column(
+                children: [
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: childAspectRatio,
+                    ),
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      final data = docs[index].data();
+                      final shopName = (data['shopName'] as String?)?.trim().isNotEmpty == true
+                          ? (data['shopName'] as String).trim()
+                          : ((data['ownerName'] as String?)?.trim().isNotEmpty == true
+                              ? (data['ownerName'] as String).trim()
+                              : 'Vendor');
+                      final subtitle = (data['description'] as String?)?.trim().isNotEmpty == true
+                          ? (data['description'] as String).trim()
+                          : 'Tap to browse items';
+                      final isOpen = data['isOpen'] as bool? ?? true;
+                      final imageUrl = (data['imageUrl'] as String?) ?? '';
 
-                  return _buildOutletCard(
-                    context,
-                    vendorId: docs[index].id,
-                    shopName: shopName,
-                    subtitle: subtitle,
-                    isOpen: isOpen,
-                    colorIndex: index,
-                    isWideScreen: isWideScreen,
-                    imageUrl: imageUrl,
-                  );
-                },
+                      return _buildOutletCard(
+                        context,
+                        vendorId: docs[index].id,
+                        shopName: shopName,
+                        subtitle: subtitle,
+                        isOpen: isOpen,
+                        colorIndex: index,
+                        isWideScreen: isWideScreen,
+                        imageUrl: imageUrl,
+                      );
+                    },
+                  ),
+                  SizedBox(height: isWideScreen ? 32 : 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AvailableShopsScreen(),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange.shade600,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isWideScreen ? 32 : 24,
+                          vertical: isWideScreen ? 18 : 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.store, size: isWideScreen ? 24 : 20),
+                          SizedBox(width: isWideScreen ? 12 : 8),
+                          Text(
+                            'Browse All Shops',
+                            style: GoogleFonts.poppins(
+                              fontSize: isWideScreen ? 18 : 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               );
             },
           ),
@@ -608,18 +615,20 @@ class CustomerLandingPage extends StatelessWidget {
               );
             }
           : null,
-      child: Container(
-        height: isWideScreen ? 320 : 280,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.15),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
+      child: Opacity(
+        opacity: isOpen ? 1.0 : 0.5,
+        child: Container(
+          height: isWideScreen ? 320 : 280,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
         child: Stack(
           children: [
             // Background image
@@ -770,6 +779,7 @@ class CustomerLandingPage extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );
