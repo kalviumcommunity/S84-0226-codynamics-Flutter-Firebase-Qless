@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -77,6 +78,8 @@ class QueueService {
 
       // Generate a globally unique, user-friendly token string (6 digits).
       final tokenString = "T${newGlobalTokenNumber.toString().padLeft(6, '0')}";
+      
+      debugPrint('📝 Creating order with token: $tokenString (globalTokenNumber: $newGlobalTokenNumber)');
 
       final orderData = {
         'userId': userId,
@@ -101,6 +104,8 @@ class QueueService {
 
       transaction.set(orderRef, orderData);
     });
+
+    debugPrint('✅ Order created successfully! ID: ${orderRef.id}, Token: T${newGlobalTokenNumber.toString().padLeft(6, '0')}');
 
     return {
       'orderId': orderRef.id,

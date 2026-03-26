@@ -1357,17 +1357,59 @@ class CustomerLandingPage extends StatelessWidget {
 
   Future<String?> _findOrderByToken(String tokenInput) async {
     String token = tokenInput.toUpperCase().trim();
+    debugPrint('🔍 Token Search - Raw input: "$tokenInput"');
+    debugPrint('🔍 Token Search - After trim & uppercase: "$token"');
+    
+    // Handle case where user enters just the digits
     if (!token.startsWith('T')) {
       token = 'T${token.padLeft(6, '0')}';
+      debugPrint('🔍 Token Search - Added T prefix: "$token"');
+    }
+    
+    // Ensure token is always exactly 7 characters (T + 6 digits)
+    if (token.length < 7) {
+      // Pad with zeros after T if needed
+      final digitPart = token.substring(1); // Remove T
+      token = 'T${digitPart.padLeft(6, '0')}';
+      debugPrint('🔍 Token Search - Padded to 6 digits: "$token"');
     }
 
-    final snapshot = await FirebaseFirestore.instance
-        .collection('orders')
-        .where('token', isEqualTo: token)
-        .limit(1)
-        .get();
+    debugPrint('🔍 Token Search - Final search token: "$token"');
 
-    return snapshot.docs.isNotEmpty ? snapshot.docs.first.id : null;
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('orders')
+          .where('token', isEqualTo: token)
+          .limit(1)
+          .get();
+
+      debugPrint('🔍 Token Search - Found ${snapshot.docs.length} order(s)');
+      
+      if (snapshot.docs.isNotEmpty) {
+        final orderId = snapshot.docs.first.id;
+        final orderData = snapshot.docs.first.data();
+        debugPrint('✅ Order found! ID: $orderId, Token in DB: ${orderData['token']}');
+        return orderId;
+      } else {
+        debugPrint('❌ No orders found with token: $token');
+        
+        // Debug: Try to find any orders to verify collection is accessible
+        final allOrders = await FirebaseFirestore.instance
+            .collection('orders')
+            .limit(5)
+            .get();
+        debugPrint('📊 Sample token values in database:');
+        for (var doc in allOrders.docs) {
+          final data = doc.data();
+          debugPrint('  - Token: ${data['token']}, Status: ${data['status']}');
+        }
+        
+        return null;
+      }
+    } catch (e) {
+      debugPrint('❌ Error searching for token: $e');
+      return null;
+    }
   }
 
   void _showTrackOrderDialog(BuildContext context) {
