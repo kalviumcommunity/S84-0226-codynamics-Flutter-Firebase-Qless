@@ -1356,60 +1356,93 @@ class CustomerLandingPage extends StatelessWidget {
   }
 
   Future<String?> _findOrderByToken(String tokenInput) async {
+    // Normalize input
     String token = tokenInput.toUpperCase().trim();
-    debugPrint('🔍 Token Search - Raw input: "$tokenInput"');
-    debugPrint('🔍 Token Search - After trim & uppercase: "$token"');
+    debugPrint('🔍 Search: Raw input = "$tokenInput" -> "$token"');
     
-    // Handle case where user enters just the digits
+    // List of patterns to try (ordered by most to least likely)
+    List<String> tokensToTry = [];
+    
+    // Pattern 1: User entered with T, use as-is
+    if (token.startsWith('T')) {
+      tokensToTry.add(token);
+      debugPrint('  ✓ Pattern 1 (as-is): "$token"');
+    }
+    
+    // Pattern 2: User entered just digits, add T and pad to 6
     if (!token.startsWith('T')) {
-      token = 'T${token.padLeft(6, '0')}';
-      debugPrint('🔍 Token Search - Added T prefix: "$token"');
+      String withT = 'T${token.padLeft(6, '0')}';
+      tokensToTry.add(withT);
+      debugPrint('  ✓ Pattern 2 (T + 6 digits): "$withT"');
     }
     
-    // Ensure token is always exactly 7 characters (T + 6 digits)
-    if (token.length < 7) {
-      // Pad with zeros after T if needed
-      final digitPart = token.substring(1); // Remove T
-      token = 'T${digitPart.padLeft(6, '0')}';
-      debugPrint('🔍 Token Search - Padded to 6 digits: "$token"');
+    // Pattern 3: If it starts with T, extract digits and repad
+    if (token.startsWith('T')) {
+      String digits = token.substring(1).replaceAll(RegExp(r'[^0-9]'), '');
+      String repacked = 'T${digits.padLeft(6, '0')}';
+      if (repacked != token) {
+        tokensToTry.add(repacked);
+        debugPrint('  ✓ Pattern 3 (extract & repad): "$repacked"');
+      }
     }
-
-    debugPrint('🔍 Token Search - Final search token: "$token"');
-
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('orders')
-          .where('token', isEqualTo: token)
-          .limit(1)
-          .get();
-
-      debugPrint('🔍 Token Search - Found ${snapshot.docs.length} order(s)');
-      
-      if (snapshot.docs.isNotEmpty) {
-        final orderId = snapshot.docs.first.id;
-        final orderData = snapshot.docs.first.data();
-        debugPrint('✅ Order found! ID: $orderId, Token in DB: ${orderData['token']}');
-        return orderId;
-      } else {
-        debugPrint('❌ No orders found with token: $token');
+    
+    // Try each pattern
+    for (String searchToken in tokensToTry) {
+      try {
+        debugPrint('  🔎 Trying: "$searchToken"');
         
-        // Debug: Try to find any orders to verify collection is accessible
-        final allOrders = await FirebaseFirestore.instance
+        final snapshot = await FirebaseFirestore.instance
             .collection('orders')
-            .limit(5)
+            .where('token', isEqualTo: searchToken)
+            .limit(1)
             .get();
-        debugPrint('📊 Sample token values in database:');
-        for (var doc in allOrders.docs) {
+        
+        if (snapshot.docs.isNotEmpty) {
+          final orderId = snapshot.docs.first.id;
+          final tokenInDB = snapshot.docs.first.data()['token'];
+          debugPrint('  ✅ FOUND! Token in DB: "$tokenInDB", Order ID: $orderId');
+          return orderId;
+        }
+      } catch (e) {
+        debugPrint('  ❌ Search error for "$searchToken": $e');
+      }
+    }
+    
+    // If exact match fails, try searching current user's orders
+    debugPrint('  📋 Exact match failed, searching user orders...');
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final userOrders = await FirebaseFirestore.instance
+            .collection('orders')
+            .where('userId', isEqualTo: user.uid)
+            .orderBy('createdAt', descending: true)
+            .limit(10)
+            .get();
+        
+        debugPrint('  📊 Found ${userOrders.docs.length} user orders:');
+        for (var doc in userOrders.docs) {
           final data = doc.data();
-          debugPrint('  - Token: ${data['token']}, Status: ${data['status']}');
+          final dbToken = data['token']?.toString() ?? '';
+          final status = data['status'] ?? 'unknown';
+          debugPrint('    - Token: "$dbToken", Status: $status');
+          
+          // Try to match with user's input
+          if (dbToken.toUpperCase().trim() == token || 
+              dbToken.toUpperCase().replaceAll('T', '').trim() == token.replaceAll('T', '')) {
+            debugPrint('  ✅ MATCHED user order! Token: "$dbToken", ID: ${doc.id}');
+            return doc.id;
+          }
         }
         
-        return null;
+        debugPrint('  ❌ No matching token in user orders');
+        debugPrint('  💡 Note: User searched for "$token"');
       }
     } catch (e) {
-      debugPrint('❌ Error searching for token: $e');
-      return null;
+      debugPrint('  ❌ Error searching user orders: $e');
     }
+    
+    return null;
   }
 
   void _showTrackOrderDialog(BuildContext context) {
@@ -1428,43 +1461,106 @@ class CustomerLandingPage extends StatelessWidget {
               const Text('Track Your Order'),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Enter your token number to check order status',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: tokenController,
-                textAlign: TextAlign.center,
-                textCapitalization: TextCapitalization.characters,
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 8,
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Enter your token number to check order status',
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
-                maxLength: 7,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9Tt]')),
-                ],
-                decoration: InputDecoration(
-                  hintText: 'T000001',
-                  counterText: '',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: tokenController,
+                  textAlign: TextAlign.center,
+                  textCapitalization: TextCapitalization.characters,
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 8,
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: Colors.orange.shade600,
-                      width: 2,
+                  maxLength: 7,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9Tt]')),
+                  ],
+                  decoration: InputDecoration(
+                    hintText: 'T000001',
+                    counterText: '',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Colors.orange.shade600,
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                const Text(
+                  'Or tap a recent order:',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                FutureBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  future: FirebaseFirestore.instance
+                      .collection('orders')
+                      .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+                      .where('status', whereIn: ['pending', 'cooking', 'ready'])
+                      .orderBy('createdAt', descending: true)
+                      .limit(3)
+                      .get(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                      return Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: snapshot.data!.docs.map((doc) {
+                          final token = doc['token']?.toString() ?? 'N/A';
+                          final status = doc['status'] ?? 'unknown';
+                          return GestureDetector(
+                            onTap: () {
+                              tokenController.text = token;
+                              setState(() {}); // Update to show selected token
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.deepOrange),
+                                borderRadius: BorderRadius.circular(8),
+                                color: Colors.deepOrange.withValues(alpha: 0.1),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    token,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  Text(
+                                    status,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -1501,9 +1597,10 @@ class CustomerLandingPage extends StatelessWidget {
                         );
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Order not found. Please check your token.'),
+                          SnackBar(
+                            content: Text('Order not found. You searched for: "$input"'),
                             backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 3),
                           ),
                         );
                       }
