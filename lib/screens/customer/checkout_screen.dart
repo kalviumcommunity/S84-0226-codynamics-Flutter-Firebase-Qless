@@ -23,6 +23,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final QueueService _queueService = QueueService();
 
   Future<void> _processPaymentAndOrder(BuildContext context, CartProvider cart) async {
+    debugPrint('💳 Processing order...');
     setState(() => _isProcessing = true);
 
     // Mock payment delay
@@ -36,12 +37,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         'quantity': item.quantity,
       }).toList();
 
+      debugPrint('📦 Items count: ${items.length}, Vendor: ${widget.vendorId}');
+
       final queueData = await _queueService.placeOrderAndJoinQueue(
         vendorId: widget.vendorId,
         shopName: widget.shopName,
         totalAmount: cart.totalAmount,
         items: items,
       );
+
+      debugPrint('✅ Queue data received: ${queueData['token']}');
 
       if (!context.mounted) return;
 
@@ -51,6 +56,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       _showTokenDialog(context, queueData['token'] ?? 'N/A', queueData['estimatedWaitTime'] ?? 0);
 
     } catch (e) {
+      debugPrint('❌ Order error: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Order failed: $e'), backgroundColor: Colors.red),
