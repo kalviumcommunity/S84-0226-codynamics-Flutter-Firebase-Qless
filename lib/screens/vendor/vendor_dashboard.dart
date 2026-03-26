@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../widgets/food_loading_indicator.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -166,7 +168,7 @@ class _DashboardHome extends StatelessWidget {
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(16.0),
-                      child: CircularProgressIndicator(),
+                      child: const FoodLoadingIndicator(size: 30),
                     ),
                   );
                 }
@@ -312,7 +314,7 @@ class _DashboardHome extends StatelessWidget {
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(16.0),
-                      child: CircularProgressIndicator(),
+                      child: const FoodLoadingIndicator(size: 30),
                     ),
                   );
                 }
@@ -530,7 +532,7 @@ class _NotificationsScreen extends StatelessWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const FoodLoadingIndicator(size: 40);
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {

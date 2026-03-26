@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../widgets/food_loading_indicator.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -433,7 +435,7 @@ class _MenuItemsScreenState extends State<MenuItemsScreen> {
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: FoodLoadingIndicator(size: 30),
                     )
                   : Text(isEditing ? 'Update Item' : 'Add Item'),
             ),
@@ -519,7 +521,7 @@ class _MenuItemsScreenState extends State<MenuItemsScreen> {
         builder: (context, snapshot) {
           // ── Loading ────────────────────────────────────────────────────
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const FoodLoadingIndicator(size: 40);
           }
 
           // ── Error ──────────────────────────────────────────────────────

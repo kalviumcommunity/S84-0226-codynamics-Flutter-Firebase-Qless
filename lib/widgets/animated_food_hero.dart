@@ -32,7 +32,8 @@ class _AnimatedFoodHeroState extends State<AnimatedFoodHero>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(seconds: 4),
+      // Made rotation slightly faster and snappier
+      duration: const Duration(seconds: 3),
       vsync: this,
     )..repeat(reverse: false);
 
@@ -50,17 +51,12 @@ class _AnimatedFoodHeroState extends State<AnimatedFoodHero>
       ),
     );
 
-    _controller.addListener(() {
-      if (_controller.value >= 0.5 && _controller.status == AnimationStatus.forward) {
-         // Switch halfway through 
-      }
-    });
-
     _startIconTimer();
   }
 
   void _startIconTimer() {
-    Future.delayed(const Duration(milliseconds: 2500), () {
+    // Switch food icons more rapidly (every 1.5 seconds)
+    Future.delayed(const Duration(milliseconds: 1500), () {
       if (!mounted) return;
       setState(() {
         _currentIndex = (_currentIndex + 1) % _foodIcons.length;
@@ -77,11 +73,16 @@ class _AnimatedFoodHeroState extends State<AnimatedFoodHero>
 
   @override
   Widget build(BuildContext context) {
+    // Determine if this is a very small loader
+    final isThumbnail = widget.size < 40;
+
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        // Floating effect using sin wave
-        final floatOffset = math.sin(_controller.value * 2 * math.pi) * 15.0;
+        // Reduced floating effect for small sizes so it doesn't leave its container
+        final floatAmplitude = isThumbnail ? 3.0 : 15.0;
+        final floatOffset = math.sin(_controller.value * 2 * math.pi) * floatAmplitude;
+        
         // Subtle rocking
         final rotation = math.sin(_controller.value * 2 * math.pi) * 0.15;
 
@@ -90,11 +91,11 @@ class _AnimatedFoodHeroState extends State<AnimatedFoodHero>
           child: Transform.rotate(
             angle: rotation,
             child: Container(
-              padding: EdgeInsets.all(widget.size * 0.4), // proportional padding
+              padding: EdgeInsets.all(isThumbnail ? widget.size * 0.15 : widget.size * 0.4), 
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isThumbnail ? Colors.transparent : Colors.white,
                 shape: BoxShape.circle,
-                boxShadow: [
+                boxShadow: isThumbnail ? null : [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.2),
                     blurRadius: 30,
@@ -108,13 +109,20 @@ class _AnimatedFoodHeroState extends State<AnimatedFoodHero>
                 ],
               ),
               child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 500),
+                // Very quick scaling effect for changing food
+                duration: const Duration(milliseconds: 350),
+                switchInCurve: Curves.easeOutBack,
+                switchOutCurve: Curves.easeInBack,
                 transitionBuilder: (Widget child, Animation<double> animation) {
                   return ScaleTransition(
                     scale: animation,
                     child: FadeTransition(
                       opacity: animation,
-                      child: child,
+                      // Adding rotation to food entrance for extra smoothness
+                      child: RotationTransition(
+                        turns: Tween<double>(begin: -0.2, end: 0.0).animate(animation),
+                        child: child,
+                      ),
                     ),
                   );
                 },

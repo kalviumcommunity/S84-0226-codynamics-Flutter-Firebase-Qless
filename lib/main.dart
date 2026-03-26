@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'widgets/food_loading_indicator.dart';
+
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -185,7 +187,7 @@ class _QlessAppState extends State<QlessApp> {
     
     if (snapshot.connectionState == ConnectionState.waiting) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: const FoodLoadingIndicator(size: 40),
       );
     }
     if (snapshot.hasError) {
@@ -269,7 +271,7 @@ class _RoleBasedHome extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+            body: const FoodLoadingIndicator(size: 40),
           );
         }
 

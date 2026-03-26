@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../widgets/food_loading_indicator.dart';
+
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/cart_provider.dart';
@@ -228,7 +230,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _isProcessing
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? const FoodLoadingIndicator(size: 30)
                       : Text(
                           'Pay ₹${cart.totalAmount.toStringAsFixed(2)} Now',
                           style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),

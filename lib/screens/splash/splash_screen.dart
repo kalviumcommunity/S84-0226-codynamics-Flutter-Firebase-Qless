@@ -82,12 +82,14 @@ class _SplashScreenState extends State<SplashScreen>
 
     // --- Only 2 controllers instead of 4 ---
     _mainController = AnimationController(
-      duration: const Duration(milliseconds: 2200),
+      // REDUCED main animation time for a faster introductory feel
+      duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
 
     _quoteController = AnimationController(
-      duration: const Duration(milliseconds: 600),
+      // Reduced subtitle animation time
+      duration: const Duration(milliseconds: 400),
       vsync: this,
     );
 
@@ -124,8 +126,8 @@ class _SplashScreenState extends State<SplashScreen>
       }
     });
 
-    // Navigate after splash
-    Future.delayed(const Duration(milliseconds: 4000), () {
+    // Navigate after splash (Reduced total time spent on splash to make app feel faster)
+    Future.delayed(const Duration(milliseconds: 2500), () {
       if (mounted) widget.onComplete();
     });
   }
@@ -143,14 +145,14 @@ class _SplashScreenState extends State<SplashScreen>
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
+            // Matched colors to home page: light orange theme
             colors: [
-              Color(0xFFEF6C00), // orange.shade800
-              Color(0xFFBF360C), // deepOrange.shade900
-              Color(0xFFB71C1C), // red.shade900
+              Colors.orange.shade400,
+              Colors.deepOrange.shade600,
             ],
           ),
         ),
