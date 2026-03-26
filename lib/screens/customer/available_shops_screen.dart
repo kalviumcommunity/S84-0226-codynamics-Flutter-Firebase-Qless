@@ -13,8 +13,34 @@ class AvailableShopsScreen extends StatefulWidget {
 class _AvailableShopsScreenState extends State<AvailableShopsScreen> {
   String _searchQuery = '';
   String _selectedCuisine = 'All';
-  List<String> _cuisines = ['All'];
-  List<DocumentSnapshot<Map<String, dynamic>>> _allShops = [];
+
+  // Extract cuisines from shops list
+  Set<String> _extractCuisines(List<QueryDocumentSnapshot<Map<String, dynamic>>> shops) {
+    Set<String> cuisines = {'All'};
+    for (var shop in shops) {
+      final cuisine = shop.data()['cuisine'] ?? 'Restaurant';
+      if (cuisine is String && cuisine.isNotEmpty) {
+        cuisines.add(cuisine);
+      }
+    }
+    return cuisines;
+  }
+
+  // Filter shops based on search and cuisine
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _filterShops(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> shops,
+  ) {
+    return shops.where((shop) {
+      final shopData = shop.data();
+      final shopName = (shopData['shopName'] ?? '').toString().toLowerCase();
+      final cuisine = shopData['cuisine'] ?? 'Restaurant';
+
+      final matchesSearch = shopName.contains(_searchQuery.toLowerCase());
+      final matchesCuisine = _selectedCuisine == 'All' || cuisine == _selectedCuisine;
+
+      return matchesSearch && matchesCuisine;
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,65 +54,85 @@ class _AvailableShopsScreenState extends State<AvailableShopsScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          // Search Bar
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.deepOrange.shade50,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: TextField(
-              onChanged: (value) => setState(() => _searchQuery = value),
-              decoration: InputDecoration(
-                hintText: 'Search shops...',
-                hintStyle: GoogleFonts.poppins(color: Colors.grey),
-                prefixIcon: Icon(Icons.search, color: Colors.deepOrange),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.deepOrange.shade200),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.deepOrange, width: 2),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
-              style: GoogleFonts.poppins(),
-            ),
-          ),
-          // Filters
-          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-            stream: FirebaseFirestore.instance
-                .collection('vendors')
-                .where('isActive', isEqualTo: true)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.hasData) {
-                Set<String> cuisineSet = {'All'};
-                for (var doc in snapshot.data?.docs ?? []) {
-                  final cuisine = doc['cuisine'] ?? 'Restaurant';
-                  if (cuisine is String && cuisine.isNotEmpty) {
-                    cuisineSet.add(cuisine);
-                  }
-                }
-                _cuisines = cuisineSet.toList()..sort();
-              }
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance
+            .collection('vendors')
+            .where('isActive', isEqualTo: true)
+            .orderBy('shopName')
+            .snapshots(),
+        builder: (context, snapshot) {
+          // Handle loading state
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.deepOrange),
+            );
+          }
 
-              return SingleChildScrollView(
+          // Handle error state
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error loading shops',
+                    style: GoogleFonts.poppins(fontSize: 16, color: Colors.red),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final allShops = snapshot.data?.docs ?? [];
+          final cuisines = _extractCuisines(allShops).toList()..sort();
+          final filteredShops = _filterShops(allShops);
+
+          return Column(
+            children: [
+              // Search Bar
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.deepOrange.shade50,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  onChanged: (value) => setState(() => _searchQuery = value),
+                  decoration: InputDecoration(
+                    hintText: 'Search shops...',
+                    hintStyle: GoogleFonts.poppins(color: Colors.grey),
+                    prefixIcon: Icon(Icons.search, color: Colors.deepOrange),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.deepOrange.shade200),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.deepOrange, width: 2),
+                    ),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  style: GoogleFonts.poppins(),
+                ),
+              ),
+
+              // Cuisine Filter Chips
+              SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
-                  children: _cuisines.map((cuisine) {
+                  children: cuisines.map((cuisine) {
                     final isSelected = _selectedCuisine == cuisine;
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
@@ -103,128 +149,88 @@ class _AvailableShopsScreenState extends State<AvailableShopsScreen> {
                           color: isSelected ? Colors.white : Colors.black54,
                         ),
                         side: BorderSide(
-                          color: isSelected ? Colors.deepOrange : Colors.grey.shade300,
+                          color: isSelected
+                              ? Colors.deepOrange
+                              : Colors.grey.shade300,
                         ),
                       ),
                     );
                   }).toList(),
                 ),
-              );
-            },
-          ),
-          // Shops List
-          Expanded(
-            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: FirebaseFirestore.instance
-                  .collection('vendors')
-                  .where('isActive', isEqualTo: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: Colors.deepOrange),
-                  );
-                }
+              ),
 
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, size: 64, color: Colors.red),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Error loading shops',
-                          style: GoogleFonts.poppins(fontSize: 16, color: Colors.red),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                final allShops = snapshot.data?.docs ?? [];
-
-                // Filter shops
-                final filteredShops = allShops.where((shop) {
-                  final shopData = shop.data();
-                  final shopName = (shopData['shopName'] ?? '').toString().toLowerCase();
-                  final cuisine = shopData['cuisine'] ?? 'Restaurant';
-                  final query = _searchQuery.toLowerCase();
-
-                  final matchesSearch = shopName.contains(query);
-                  final matchesCuisine = _selectedCuisine == 'All' || cuisine == _selectedCuisine;
-
-                  return matchesSearch && matchesCuisine;
-                }).toList();
-
-                if (filteredShops.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.store_outlined,
-                          size: 80,
-                          color: Colors.grey.shade300,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _searchQuery.isEmpty && _selectedCuisine == 'All'
-                              ? 'No shops available yet'
-                              : 'No shops match your search',
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        if (_searchQuery.isNotEmpty || _selectedCuisine != 'All')
-                          ElevatedButton(
-                            onPressed: () => setState(() {
-                              _searchQuery = '';
-                              _selectedCuisine = 'All';
-                            }),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.deepOrange,
-                              foregroundColor: Colors.white,
+              // Shops List
+              Expanded(
+                child: filteredShops.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.store_outlined,
+                              size: 80,
+                              color: Colors.grey.shade300,
                             ),
-                            child: Text(
-                              'Clear Filters',
-                              style: GoogleFonts.poppins(),
+                            const SizedBox(height: 16),
+                            Text(
+                              allShops.isEmpty
+                                  ? 'No shops available yet'
+                                  : 'No shops match your search',
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey.shade600,
+                              ),
                             ),
-                          ),
-                      ],
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: filteredShops.length,
-                  itemBuilder: (context, index) {
-                    final shop = filteredShops[index];
-                    return _ShopCard(shop: shop);
-                  },
-                );
-              },
-            ),
-          ),
-        ],
+                            if (_searchQuery.isNotEmpty ||
+                                _selectedCuisine != 'All')
+                              Padding(
+                                padding: const EdgeInsets.only(top: 16),
+                                child: ElevatedButton(
+                                  onPressed: () => setState(() {
+                                    _searchQuery = '';
+                                    _selectedCuisine = 'All';
+                                  }),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.deepOrange,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  child: Text(
+                                    'Clear Filters',
+                                    style: GoogleFonts.poppins(),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: filteredShops.length,
+                        itemBuilder: (context, index) {
+                          final shop = filteredShops[index];
+                          return _ShopCard(shop: shop);
+                        },
+                      ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 }
+}
 
 /// Individual Shop Card Widget
 class _ShopCard extends StatelessWidget {
-  final DocumentSnapshot<Map<String, dynamic>> shop;
+  final QueryDocumentSnapshot<Map<String, dynamic>> shop;
 
   const _ShopCard({required this.shop});
 
   @override
   Widget build(BuildContext context) {
-    final shopData = shop.data() ?? {};
+    final shopData = shop.data();
     final shopId = shop.id;
     final shopName = shopData['shopName'] ?? 'Unknown Shop';
     final description = shopData['description'] ?? '';
