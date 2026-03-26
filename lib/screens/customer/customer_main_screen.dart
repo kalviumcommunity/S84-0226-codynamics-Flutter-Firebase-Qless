@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:qless/widgets/floating_nav_bar.dart';
 import 'customer_landing_page.dart';
-import 'user_profile_screen.dart';
+import 'enhanced_user_profile_screen.dart';
 import 'my_orders_screen.dart';
 import 'available_shops_screen.dart';
 
@@ -19,7 +19,7 @@ class _CustomerMainScreenState extends State<CustomerMainScreen> {
     CustomerLandingPage(isAuthenticatedUser: true), // Home page
     AvailableShopsScreen(), // Browse available shops
     MyOrdersScreen(), // Order history
-    UserProfileScreen(), // User profile
+    EnhancedUserProfileScreen(), // User profile
   ];
 
   @override
