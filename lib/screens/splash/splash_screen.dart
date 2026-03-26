@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:math' as math;
+import '../../widgets/animated_food_hero.dart';
 
 class SplashScreen extends StatefulWidget {
   final VoidCallback onComplete;
@@ -19,8 +19,6 @@ class _SplashScreenState extends State<SplashScreen>
   final String _text = 'QLess';
   late final List<Animation<double>> _letterScaleAnims;
   late final List<Animation<double>> _letterFadeAnims;
-  late final Animation<double> _foodIconsFade;
-  late final Animation<double> _plateFade;
 
   // Pre-cached styles
   late final TextStyle _quoteStyle;
@@ -29,17 +27,6 @@ class _SplashScreenState extends State<SplashScreen>
   late final TextStyle _letterStyle;
   late final Color _iconColor;
   late final Color _progressColor;
-
-  // Pre-computed food icon positions
-  static const _foodIcons = [
-    Icons.local_pizza,
-    Icons.ramen_dining,
-    Icons.fastfood,
-    Icons.icecream,
-    Icons.local_cafe,
-    Icons.rice_bowl,
-  ];
-  late final List<Offset> _iconOffsets;
 
   @override
   void initState() {
@@ -56,7 +43,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     // --- Pre-cache all styles (zero allocation per frame) ---
     _letterStyle = GoogleFonts.righteous(
-      fontSize: 76,
+      fontSize: 56,
       fontWeight: FontWeight.w400,
       color: Colors.white,
       shadows: [
@@ -92,14 +79,6 @@ class _SplashScreenState extends State<SplashScreen>
 
     _iconColor = Colors.white.withOpacity(0.6);
     _progressColor = Colors.white.withOpacity(0.7);
-
-    // Pre-compute food icon positions (once, not per frame)
-    _iconOffsets = List.generate(_foodIcons.length, (index) {
-      final angle =
-          (index / _foodIcons.length) * math.pi * 2 - math.pi / 2;
-      const radius = 130.0;
-      return Offset(math.cos(angle) * radius, math.sin(angle) * radius);
-    });
 
     // --- Only 2 controllers instead of 4 ---
     _mainController = AnimationController(
@@ -138,21 +117,6 @@ class _SplashScreenState extends State<SplashScreen>
         ),
       );
     }
-
-    // Food icons & plate fade in at the end of main animation
-    _foodIconsFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _mainController,
-        curve: const Interval(0.5, 0.9, curve: Curves.easeOut),
-      ),
-    );
-
-    _plateFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _mainController,
-        curve: const Interval(0.3, 0.7, curve: Curves.easeOut),
-      ),
-    );
 
     _mainController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
@@ -199,59 +163,13 @@ class _SplashScreenState extends State<SplashScreen>
               // Logo area
               SizedBox(
                 height: 250,
-                child: Stack(
-                  alignment: Alignment.center,
-                  clipBehavior: Clip.none,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Food icons (static positions, just fade in)
-                    RepaintBoundary(
-                      child: AnimatedBuilder(
-                        animation: _foodIconsFade,
-                        builder: (context, _) {
-                          final opacity = _foodIconsFade.value * 0.2;
-                          if (opacity < 0.01) return const SizedBox.shrink();
-                          return Stack(
-                            children: List.generate(_foodIcons.length, (i) {
-                              return Transform.translate(
-                                offset: _iconOffsets[i],
-                                child: Icon(
-                                  _foodIcons[i],
-                                  color: Colors.white.withOpacity(opacity),
-                                  size: 28,
-                                ),
-                              );
-                            }),
-                          );
-                        },
-                      ),
-                    ),
-
-                    // Plate (fade in, no shadow animation)
-                    AnimatedBuilder(
-                      animation: _plateFade,
-                      builder: (context, child) {
-                        if (_plateFade.value < 0.01) {
-                          return const SizedBox.shrink();
-                        }
-                        return Opacity(
-                          opacity: _plateFade.value,
-                          child: child,
-                        );
-                      },
-                      child: Transform.translate(
-                        offset: const Offset(0, 45),
-                        child: Container(
-                          width: 280,
-                          height: 35,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(100),
-                            color: Colors.black.withOpacity(0.15),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Animated text — no BoxShadow, no glow pulse
+                    // Dynamic rotating food icon
+                    const AnimatedFoodHero(size: 80.0),
+                    const SizedBox(height: 20),
+                    // Animated text
                     RepaintBoundary(child: _buildAnimatedText()),
                   ],
                 ),

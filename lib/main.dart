@@ -8,7 +8,6 @@ import 'package:provider/provider.dart';
 import 'providers/vendor_provider.dart';
 import 'providers/cart_provider.dart';
 import 'firebase_options.dart';
-import 'screens/auth/auth_screen.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/customer/customer_landing_page.dart';
 import 'screens/customer/customer_main_screen.dart';
@@ -58,8 +57,15 @@ void main() async {
   );
 }
 
-class QlessApp extends StatelessWidget {
+class QlessApp extends StatefulWidget {
   const QlessApp({super.key});
+
+  @override
+  State<QlessApp> createState() => _QlessAppState();
+}
+
+class _QlessAppState extends State<QlessApp> {
+  bool _showSplash = true;
 
   @override
   Widget build(BuildContext context) {
@@ -167,11 +173,19 @@ class QlessApp extends StatelessWidget {
 }
 
   Widget _buildHome(AsyncSnapshot<User?> snapshot) {
-    if (snapshot.connectionState == ConnectionState.waiting) {
+    if (_showSplash) {
       return SplashScreen(
         onComplete: () {
-          // This splash is display-only while Firebase resolves persisted auth state.
+          setState(() {
+            _showSplash = false;
+          });
         },
+      );
+    }
+    
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
       );
     }
     if (snapshot.hasError) {
@@ -182,11 +196,7 @@ class QlessApp extends StatelessWidget {
     if (snapshot.hasData) {
       return _RoleBasedHome(user: snapshot.data!);
     }
-    return AuthScreen(
-      onAuthSuccess: () {
-        // StreamBuilder updates automatically when auth state changes.
-      },
-    );
+    return const CustomerLandingPage(); // Default screen when not logged in
   }
 }
 

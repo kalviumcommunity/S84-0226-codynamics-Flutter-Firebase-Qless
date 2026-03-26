@@ -14,6 +14,7 @@ import 'order_tracking_screen.dart';
 import 'my_orders_screen.dart';
 
 import '../../widgets/live_queue_widget.dart';
+import '../../widgets/animated_food_hero.dart';
 
 class CustomerLandingPage extends StatelessWidget {
   final bool isAuthenticatedUser;
@@ -277,51 +278,16 @@ class CustomerLandingPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 48),
-                // Right side - Logo
-                Container(
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 30,
-                        offset: const Offset(0, 15),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.restaurant_menu,
-                    size: logoSize,
-                    color: Colors.orange.shade600,
-                  ),
-                ),
+                // Right side - Animated Food Hero
+                AnimatedFoodHero(size: logoSize),
               ],
             )
           : Column(
               children: [
-                // Logo
-                Container(
-                  padding: EdgeInsets.all(isWideScreen ? 24 : 18),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.restaurant_menu,
-                    size: logoSize,
-                    color: Colors.orange.shade600,
-                  ),
-                ),
-                SizedBox(height: isWideScreen ? 28 : 20),
+                // Animated Food Hero fallback
+                SizedBox(height: isWideScreen ? 20 : 10),
+                AnimatedFoodHero(size: logoSize),
+                SizedBox(height: isWideScreen ? 48 : 40),
 
                 // App Name
                 Text(
