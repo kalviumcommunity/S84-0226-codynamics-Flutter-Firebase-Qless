@@ -1356,93 +1356,62 @@ class CustomerLandingPage extends StatelessWidget {
   }
 
   Future<String?> _findOrderByToken(String tokenInput) async {
-    // Normalize input
-    String token = tokenInput.toUpperCase().trim();
-    debugPrint('🔍 Search: Raw input = "$tokenInput" -> "$token"');
-    
-    // List of patterns to try (ordered by most to least likely)
-    List<String> tokensToTry = [];
-    
-    // Pattern 1: User entered with T, use as-is
-    if (token.startsWith('T')) {
-      tokensToTry.add(token);
-      debugPrint('  ✓ Pattern 1 (as-is): "$token"');
-    }
-    
-    // Pattern 2: User entered just digits, add T and pad to 6
-    if (!token.startsWith('T')) {
-      String withT = 'T${token.padLeft(6, '0')}';
-      tokensToTry.add(withT);
-      debugPrint('  ✓ Pattern 2 (T + 6 digits): "$withT"');
-    }
-    
-    // Pattern 3: If it starts with T, extract digits and repad
-    if (token.startsWith('T')) {
-      String digits = token.substring(1).replaceAll(RegExp(r'[^0-9]'), '');
-      String repacked = 'T${digits.padLeft(6, '0')}';
-      if (repacked != token) {
-        tokensToTry.add(repacked);
-        debugPrint('  ✓ Pattern 3 (extract & repad): "$repacked"');
-      }
-    }
-    
-    // Try each pattern
-    for (String searchToken in tokensToTry) {
-      try {
-        debugPrint('  🔎 Trying: "$searchToken"');
-        
-        final snapshot = await FirebaseFirestore.instance
-            .collection('orders')
-            .where('token', isEqualTo: searchToken)
-            .limit(1)
-            .get();
-        
-        if (snapshot.docs.isNotEmpty) {
-          final orderId = snapshot.docs.first.id;
-          final tokenInDB = snapshot.docs.first.data()['token'];
-          debugPrint('  ✅ FOUND! Token in DB: "$tokenInDB", Order ID: $orderId');
-          return orderId;
-        }
-      } catch (e) {
-        debugPrint('  ❌ Search error for "$searchToken": $e');
-      }
-    }
-    
-    // If exact match fails, try searching current user's orders
-    debugPrint('  📋 Exact match failed, searching user orders...');
+    String searchToken = tokenInput.toUpperCase().trim();
+    debugPrint('🔍 Searching for token: "$searchToken"');
+
     try {
+      // SOLUTION: Instead of using .where() which needs indexes,
+      // fetch user's orders directly and search locally
       final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final userOrders = await FirebaseFirestore.instance
-            .collection('orders')
-            .where('userId', isEqualTo: user.uid)
-            .orderBy('createdAt', descending: true)
-            .limit(10)
-            .get();
+      if (user == null) {
+        debugPrint('❌ User not logged in');
+        return null;
+      }
+
+      // Get ALL orders for this user
+      final snapshot = await FirebaseFirestore.instance
+          .collection('orders')
+          .where('userId', isEqualTo: user.uid)
+          .get();
+
+      debugPrint('📊 Found ${snapshot.docs.length} total orders for user');
+
+      // Search through them locally
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final tokenInDB = data['token']?.toString() ?? '';
+        final status = data['status'] ?? 'unknown';
         
-        debugPrint('  📊 Found ${userOrders.docs.length} user orders:');
-        for (var doc in userOrders.docs) {
-          final data = doc.data();
-          final dbToken = data['token']?.toString() ?? '';
-          final status = data['status'] ?? 'unknown';
-          debugPrint('    - Token: "$dbToken", Status: $status');
-          
-          // Try to match with user's input
-          if (dbToken.toUpperCase().trim() == token || 
-              dbToken.toUpperCase().replaceAll('T', '').trim() == token.replaceAll('T', '')) {
-            debugPrint('  ✅ MATCHED user order! Token: "$dbToken", ID: ${doc.id}');
-            return doc.id;
-          }
+        debugPrint('  Comparing: "$tokenInDB" vs "$searchToken"');
+
+        // Token exact match
+        if (tokenInDB.toUpperCase() == searchToken) {
+          debugPrint('✅ EXACT MATCH! Token: "$tokenInDB", Order ID: ${doc.id}');
+          return doc.id;
         }
         
-        debugPrint('  ❌ No matching token in user orders');
-        debugPrint('  💡 Note: User searched for "$token"');
+        // Try matching just the digits (without T)
+        final tokenDigits = tokenInDB.replaceAll(RegExp(r'[^0-9]'), '');
+        final searchDigits = searchToken.replaceAll(RegExp(r'[^0-9]'), '');
+        
+        if (tokenDigits == searchDigits && tokenDigits.isNotEmpty) {
+          debugPrint('✅ DIGIT MATCH! Token: "$tokenInDB", Order ID: ${doc.id}');
+          return doc.id;
+        }
       }
+
+      debugPrint('❌ No matching token found in user orders');
+      debugPrint('💡 Orders with tokens:');
+      for (var doc in snapshot.docs) {
+        final tokenInDB = doc.data()['token'] ?? 'N/A';
+        debugPrint('  - "$tokenInDB"');
+      }
+      
+      return null;
     } catch (e) {
-      debugPrint('  ❌ Error searching user orders: $e');
+      debugPrint('❌ Error searching orders: $e');
+      return null;
     }
-    
-    return null;
   }
 
   void _showTrackOrderDialog(BuildContext context) {
@@ -1505,19 +1474,40 @@ class CustomerLandingPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 FutureBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  // Simplified: Fetch all user orders without orderBy (requires composite index)
+                  // Filter and sort locally instead
                   future: FirebaseFirestore.instance
                       .collection('orders')
                       .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-                      .where('status', whereIn: ['pending', 'cooking', 'ready'])
-                      .orderBy('createdAt', descending: true)
-                      .limit(3)
                       .get(),
                   builder: (context, snapshot) {
                     if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                      // Filter for active status and sort locally
+                      final activeOrders = snapshot.data!.docs
+                          .where((doc) {
+                            final status = doc['status'];
+                            return status == 'pending' || status == 'cooking' || status == 'ready';
+                          })
+                          .toList();
+                      
+                      // Sort by createdAt descending
+                      activeOrders.sort((a, b) {
+                        final aTime = (a['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+                        final bTime = (b['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+                        return bTime.compareTo(aTime);
+                      });
+                      
+                      // Limit to 3
+                      final recentOrders = activeOrders.take(3).toList();
+                      
+                      if (recentOrders.isEmpty) {
+                        return const SizedBox.shrink();
+                      }
+                      
                       return Wrap(
                         spacing: 8,
                         runSpacing: 8,
-                        children: snapshot.data!.docs.map((doc) {
+                        children: recentOrders.map((doc) {
                           final token = doc['token']?.toString() ?? 'N/A';
                           final status = doc['status'] ?? 'unknown';
                           return GestureDetector(
