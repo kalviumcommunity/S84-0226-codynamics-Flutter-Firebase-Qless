@@ -15,139 +15,7 @@ class UserDashboardScreen extends StatefulWidget {
 }
 
 class _UserDashboardScreenState extends State<UserDashboardScreen> {
-  bool _isLoading = false;
-
   static const String _defaultShopBackground = 'assets/images/banner.png';
-
-  Future<void> _seedMockShops(BuildContext context) async {
-    setState(() => _isLoading = true);
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Seeding shops...')),
-    );
-    try {
-      final firestore = FirebaseFirestore.instance;
-      final shops = [
-        {'role': 'vendor', 'shopName': 'Spice Garden', 'ownerName': 'Chef Raj', 'description': 'Authentic Indian Biryani & Curries', 'imageUrl': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&h=600&fit=crop', 'isActive': true, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()},
-        {'role': 'vendor', 'shopName': 'Dragon Wok', 'ownerName': 'Mei Lin', 'description': 'Delicious Chinese Noodles & Manchurian', 'imageUrl': 'https://images.unsplash.com/photo-1585521537745-68823e6ce39f?w=800&h=600&fit=crop', 'isActive': true, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()},
-        {'role': 'vendor', 'shopName': 'Burger Barn', 'ownerName': 'John Doe', 'description': 'American Burgers & Crispy Fries', 'imageUrl': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=600&fit=crop', 'isActive': true, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()},
-        {'role': 'vendor', 'shopName': 'Chai & Snacks', 'ownerName': 'Amit', 'description': 'Hot Tea, Coffee & Fresh Samosas', 'imageUrl': 'https://images.unsplash.com/photo-1570080166338-1c2e4a0db3e3?w=800&h=600&fit=crop', 'isActive': true, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()},
-        {'role': 'vendor', 'shopName': 'Pizza Planet', 'ownerName': 'Mario', 'description': 'Italian Pizzas & Pasta', 'imageUrl': 'https://images.unsplash.com/photo-1564236052573-4ca76fc3e810?w=800&h=600&fit=crop', 'isActive': true, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()},
-      ];
-      
-      for (final shop in shops) {
-        // Only adding mock auth UID to users collection
-        final dummyUid = 'mock_${DateTime.now().millisecondsSinceEpoch}_${shop['shopName'].toString().replaceAll(" ", "")}';
-        await firestore.collection('users').doc(dummyUid).set(shop);
-
-        // Seed one dummy item per shop
-        await firestore.collection('menu_items').add({
-          'vendorId': dummyUid,
-          'name': 'Signature ${shop['shopName'].toString().split(' ').last}',
-          'description': 'Our famous bestselling item.',
-          'price': 150.0,
-          'category': 'Specials',
-          'imageUrl': '',
-          'isAvailable': true,
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      }
-      
-      if (context.mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✓ 5 dummy shops added successfully!')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error seeding: $e')),
-        );
-      }
-    }
-  }
-
-  Future<void> _deleteMockShops(BuildContext context) async {
-    setState(() => _isLoading = true);
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Deleting dummy shops...')),
-    );
-    
-    try {
-      final firestore = FirebaseFirestore.instance;
-      
-      // Delete mock users
-      final usersQuery = await firestore.collection('users').where('role', isEqualTo: 'vendor').get();
-      int deletedUsers = 0;
-      for (final doc in usersQuery.docs) {
-        if (doc.id.startsWith('mock_')) {
-          await doc.reference.delete();
-          deletedUsers++;
-        }
-      }
-
-      // Delete mock items
-      final itemsQuery = await firestore.collection('menu_items').get();
-      int deletedItems = 0;
-      for (final doc in itemsQuery.docs) {
-        final vendorId = doc.data()['vendorId'] as String?;
-        if (vendorId != null && vendorId.startsWith('mock_')) {
-          await doc.reference.delete();
-          deletedItems++;
-        }
-      }
-
-      if (context.mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('✓ Deleted $deletedUsers shops and $deletedItems items')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error deleting: $e')),
-        );
-      }
-    }
-  }
-
-  void _showDummyDataMenu(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Manage Dummy Data'),
-        content: const Text('Add or remove test shops for development.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          TextButton.icon(
-            onPressed: _isLoading ? null : () {
-              Navigator.pop(ctx);
-              _deleteMockShops(context);
-            },
-            icon: const Icon(Icons.delete, color: Colors.red),
-            label: const Text('Delete Dummy Shops', style: TextStyle(color: Colors.red)),
-          ),
-          ElevatedButton.icon(
-            onPressed: _isLoading ? null : () {
-              Navigator.pop(ctx);
-              _seedMockShops(context);
-            },
-            icon: const Icon(Icons.add),
-            label: const Text('Add Dummy Shops'),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -160,28 +28,16 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
         backgroundColor: Colors.deepOrange,
         foregroundColor: Colors.white,
         actions: [
-          if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: FoodLoadingIndicator(size: 30),
-            )
-          else ...[
-            IconButton(
-              icon: const Icon(Icons.storage),
-              tooltip: 'Manage Dummy Data',
-              onPressed: () => _showDummyDataMenu(context),
-            ),
-            IconButton(
-              icon: const Icon(Icons.account_circle_outlined),
-              tooltip: 'Profile',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const UserProfileScreen()),
-                );
-              },
-            ),
-          ]
+          IconButton(
+            icon: const Icon(Icons.account_circle_outlined),
+            tooltip: 'Profile',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const UserProfileScreen()),
+              );
+            },
+          ),
         ],
       ),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
