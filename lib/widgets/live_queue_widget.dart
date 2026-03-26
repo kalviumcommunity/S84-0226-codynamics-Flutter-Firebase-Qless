@@ -70,7 +70,7 @@ class _LiveQueueWidgetState extends State<LiveQueueWidget> {
 
             return _buildActiveQueueWidget(
               tokenId: tokenString, 
-              currentServing: "T${currentServingToken.toString().padLeft(3, '0')}", 
+              currentServing: "T${currentServingToken.toString().padLeft(6, '0')}", 
               peopleAhead: peopleAhead, 
               eta: estimatedWaitMins
             );
