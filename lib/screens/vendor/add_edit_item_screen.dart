@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../widgets/food_loading_indicator.dart';
+
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../models/menu_item_model.dart';
@@ -276,7 +278,7 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                   ),
                   child: _isUploading
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                      ? const SizedBox(width: 24, height: 24, child: FoodLoadingIndicator(size: 30))
                       : const Icon(Icons.upload_file),
                 ),
               ],

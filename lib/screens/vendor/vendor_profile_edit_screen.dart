@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../widgets/food_loading_indicator.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -84,7 +86,7 @@ class _VendorProfileEditScreenState extends State<VendorProfileEditScreen> {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const FoodLoadingIndicator(size: 40);
           }
 
           if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
@@ -405,7 +407,7 @@ class _EditProfileFormState extends State<_EditProfileForm> {
                   padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                 ),
                 child: _isUploading
-                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const SizedBox(width: 24, height: 24, child: FoodLoadingIndicator(size: 30))
                     : const Icon(Icons.upload_file),
               ),
             ],
@@ -422,7 +424,7 @@ class _EditProfileFormState extends State<_EditProfileForm> {
               ),
             ),
             child: _isLoading
-                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                ? const SizedBox(width: 24, height: 24, child: FoodLoadingIndicator(size: 30))
                 : Text(
                     'Save Changes',
                     style: GoogleFonts.poppins(

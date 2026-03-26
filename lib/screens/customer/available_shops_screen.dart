@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../widgets/food_loading_indicator.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'shop_menu_screen.dart';
@@ -64,7 +66,7 @@ class _AvailableShopsScreenState extends State<AvailableShopsScreen> {
           // Handle loading state
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(color: Colors.deepOrange),
+              child: FoodLoadingIndicator(size: 30),
             );
           }
 

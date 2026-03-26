@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../widgets/food_loading_indicator.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/order_model.dart';
@@ -56,7 +58,7 @@ class OrderTrackingScreen extends StatelessWidget {
             return const Center(child: Text('Error loading order details'));
           }
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const FoodLoadingIndicator(size: 40);
           }
           if (!snapshot.hasData || !snapshot.data!.exists) {
             return const Center(child: Text('Order not found'));

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../widgets/food_loading_indicator.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -35,7 +37,7 @@ class ShopMenuScreen extends StatelessWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const FoodLoadingIndicator(size: 40);
           }
 
           if (snapshot.hasError) {

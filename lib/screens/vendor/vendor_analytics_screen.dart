@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../widgets/food_loading_indicator.dart';
+
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -192,7 +194,7 @@ class _VendorAnalyticsScreenState extends State<VendorAnalyticsScreen> {
         automaticallyImplyLeading: false,
       ),
       body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
+        ? const FoodLoadingIndicator(size: 40)
         : RefreshIndicator(
             onRefresh: _fetchAnalyticsData,
             child: ListView(

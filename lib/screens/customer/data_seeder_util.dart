@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../widgets/food_loading_indicator.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DataSeederUtil {
@@ -118,7 +120,7 @@ class _DataManagerDialogState extends State<_DataManagerDialog> {
         children: [
           Text(_status, style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          if (_isLoading) const CircularProgressIndicator(),
+          if (_isLoading) const FoodLoadingIndicator(size: 30),
           if (!_isLoading) ...[
             ElevatedButton.icon(
               onPressed: _seedShops,

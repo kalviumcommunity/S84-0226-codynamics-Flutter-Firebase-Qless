@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../widgets/food_loading_indicator.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -175,7 +177,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                   ),
                   child: _isUploading
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                      ? const SizedBox(width: 24, height: 24, child: FoodLoadingIndicator(size: 30))
                       : const Icon(Icons.upload_file),
                 ),
               ],

@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../../widgets/food_loading_indicator.dart';
+
 import 'package:google_fonts/google_fonts.dart';
 import 'package:qless/services/firestore_service.dart';
 import 'shop_menu_screen.dart';
@@ -161,7 +163,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
           if (_isLoading)
             const Padding(
               padding: EdgeInsets.all(16.0),
-              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+              child: FoodLoadingIndicator(size: 30),
             )
           else ...[
             IconButton(
@@ -186,7 +188,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
         stream: FirestoreService.instance.vendorsStream(),
         builder: (context, vendorsSnapshot) {
           if (vendorsSnapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const FoodLoadingIndicator(size: 40);
           }
 
           if (vendorsSnapshot.hasError) {
