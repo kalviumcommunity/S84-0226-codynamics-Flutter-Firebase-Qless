@@ -75,8 +75,8 @@ class QueueService {
         });
       }
 
-      // Generate a globally unique, user-friendly token string.
-      final tokenString = "T${newGlobalTokenNumber.toString().padLeft(5, '0')}";
+      // Generate a globally unique, user-friendly token string (6 digits).
+      final tokenString = "T${newGlobalTokenNumber.toString().padLeft(6, '0')}";
 
       final orderData = {
         'userId': userId,
@@ -104,7 +104,7 @@ class QueueService {
 
     return {
       'orderId': orderRef.id,
-      'token': "T${newGlobalTokenNumber.toString().padLeft(5, '0')}",
+      'token': "T${newGlobalTokenNumber.toString().padLeft(6, '0')}",
       'estimatedWaitTime': estimatedWaitTime,
       'tokenNumber': newTokenNumber,
       'globalTokenNumber': newGlobalTokenNumber,

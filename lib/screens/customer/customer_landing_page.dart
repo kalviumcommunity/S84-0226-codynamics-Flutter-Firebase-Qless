@@ -1358,7 +1358,7 @@ class CustomerLandingPage extends StatelessWidget {
   Future<String?> _findOrderByToken(String tokenInput) async {
     String token = tokenInput.toUpperCase().trim();
     if (!token.startsWith('T')) {
-      token = 'T${token.padLeft(3, '0')}';
+      token = 'T${token.padLeft(6, '0')}';
     }
 
     final snapshot = await FirebaseFirestore.instance
@@ -1403,12 +1403,12 @@ class CustomerLandingPage extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   letterSpacing: 8,
                 ),
-                maxLength: 4,
+                maxLength: 7,
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'[0-9Tt]')),
                 ],
                 decoration: InputDecoration(
-                  hintText: 'T001',
+                  hintText: 'T000001',
                   counterText: '',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
