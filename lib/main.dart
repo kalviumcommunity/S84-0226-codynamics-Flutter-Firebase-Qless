@@ -274,8 +274,8 @@ class _RoleBasedHome extends StatelessWidget {
           debugPrint('✅ Loading VendorDashboard');
           return const VendorDashboard();
         } else {
-          debugPrint('✅ Loading CustomerLandingPage');
-          return const CustomerLandingPage(isAuthenticatedUser: true);
+          debugPrint('✅ Loading CustomerMainScreen');
+          return const CustomerMainScreen();
         }
       },
     );
