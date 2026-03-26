@@ -10,14 +10,12 @@ import 'package:provider/provider.dart';
 import 'providers/vendor_provider.dart';
 import 'providers/cart_provider.dart';
 import 'firebase_options.dart';
+import 'screens/auth/auth_screen.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/customer/customer_landing_page.dart';
 import 'screens/customer/customer_main_screen.dart';
 import 'screens/vendor/vendor_dashboard.dart';
 import 'screens/splash/splash_screen.dart';
-import 'screens/stateless_stateful_demo.dart';
-import 'screens/forms_demo.dart';
-import 'screens/devtools_demo.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -78,11 +76,6 @@ class _QlessAppState extends State<QlessApp> {
           key: ValueKey(authSnapshot.data?.uid ?? 'logged_out'),
           title: 'Qless',
           debugShowCheckedModeBanner: false,
-          routes: {
-            '/demo': (context) => const StatelessStatefulDemo(),
-            '/forms': (context) => const FormsDemo(),
-            '/devtools': (context) => const DevToolsDemo(),
-          },
           theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.deepOrange,
@@ -198,7 +191,7 @@ class _QlessAppState extends State<QlessApp> {
     if (snapshot.hasData) {
       return _RoleBasedHome(user: snapshot.data!);
     }
-    return const CustomerLandingPage(); // Default screen when not logged in
+    return AuthScreen(onAuthSuccess: () {}); // Default screen when not logged in
   }
 }
 
