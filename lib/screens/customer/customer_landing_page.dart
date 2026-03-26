@@ -5,13 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:qless/screens/auth/auth_screen.dart';
-import 'package:qless/screens/admin/admin_dashboard.dart';
-import 'package:qless/screens/responsive_home.dart';
 import 'package:qless/screens/customer/shop_menu_screen.dart';
 import 'package:qless/screens/customer/available_shops_screen.dart';
 import 'package:qless/services/firestore_service.dart';
-import 'package:qless/screens/customer/data_seeder_util.dart';
 import 'order_tracking_screen.dart';
 import 'my_orders_screen.dart';
 
@@ -48,83 +44,6 @@ class CustomerLandingPage extends StatelessWidget {
               ],
             )
           : null,
-      floatingActionButton: isAuthenticatedUser
-          ? null
-          : Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                FloatingActionButton.small(
-                  heroTag: 'logout_btn',
-                  backgroundColor: Colors.redAccent,
-                  foregroundColor: Colors.white,
-                  onPressed: () async {
-                    await FirebaseAuth.instance.signOut();
-                  },
-                  child: const Icon(Icons.logout),
-                  tooltip: 'Logout',
-                ),
-                const SizedBox(height: 16),
-                FloatingActionButton.small(
-                  heroTag: 'responsive_demo',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const ResponsiveHome()),
-                    );
-                  },
-                  child: const Icon(Icons.aspect_ratio),
-                  tooltip: 'Show Responsive Demo',
-                ),
-                const SizedBox(height: 16),
-                FloatingActionButton(
-                  heroTag: 'admin_login',
-                  onPressed: () {
-                    // Check if already logged in
-                    if (FirebaseAuth.instance.currentUser != null) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AdminDashboard(),
-                        ),
-                      );
-                    } else {
-                      // Not logged in, go to Auth Screen
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AuthScreen(
-                            initialRole: 'vendor',
-                            onAuthSuccess: () {
-                              // After successful login, replace with Admin Dashboard
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const AdminDashboard(),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                  child: const Icon(Icons.admin_panel_settings),
-                  tooltip: 'Admin Login',
-                ),
-                const SizedBox(height: 16),
-                FloatingActionButton.extended(
-                  heroTag: 'manage_data_btn',
-                  backgroundColor: Colors.deepOrange,
-                  foregroundColor: Colors.white,
-                  icon: const Icon(Icons.settings_applications),
-                  label: const Text('Manage Test Data'),
-                  onPressed: () {
-                    DataSeederUtil.showManagerDialog(context);
-                  },
-                ),
-              ],
-            ),
       body: SafeArea(
         child: Stack(
           children: [
