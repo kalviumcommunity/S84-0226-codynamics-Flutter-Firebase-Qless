@@ -15,12 +15,19 @@ class CustomerMainScreen extends StatefulWidget {
 class _CustomerMainScreenState extends State<CustomerMainScreen> {
   int _selectedIndex = 0;
 
-  final List<Widget> _screens = const [
-    CustomerLandingPage(isAuthenticatedUser: true), // Home page
-    AvailableShopsScreen(), // Browse available shops
-    MyOrdersScreen(), // Order history
-    EnhancedUserProfileScreen(), // User profile
-  ];
+  // Don't use const - these screens need to be dynamically created
+  late final List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      const CustomerLandingPage(isAuthenticatedUser: true), // Home page
+      const AvailableShopsScreen(), // Browse available shops
+      const MyOrdersScreen(), // Order history
+      const EnhancedUserProfileScreen(), // User profile
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
