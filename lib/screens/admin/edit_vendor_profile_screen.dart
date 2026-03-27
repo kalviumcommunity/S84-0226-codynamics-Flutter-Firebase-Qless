@@ -6,10 +6,12 @@ import 'package:google_fonts/google_fonts.dart';
 /// Screen for editing vendor profile information
 class EditVendorProfileScreen extends StatefulWidget {
   final Map<String, dynamic> profileData;
+  final String? vendorId; // Optional: for admin editing other vendors
 
   const EditVendorProfileScreen({
     super.key,
     required this.profileData,
+    this.vendorId,
   });
 
   @override
@@ -65,7 +67,8 @@ class _EditVendorProfileScreenState extends State<EditVendorProfileScreen> {
     setState(() => _isSaving = true);
 
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
+      // Use provided vendorId (for admin editing) or current user's UID (for vendor self-editing)
+      final uid = widget.vendorId ?? FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) {
         throw Exception('User not authenticated');
       }
