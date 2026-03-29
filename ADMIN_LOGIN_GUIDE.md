@@ -12,7 +12,7 @@ Admin and SuperAdmin roles are now managed exclusively through Firestore. There 
 
 ### Method 1: Set Role in Firestore (Recommended)
 1. Create a user account normally (as User or Vendor)
-2. Go to Firebase Console → Firestore Database
+2. Go to Firebase Console → Firestore database
 3. Navigate to the `users` collection
 4. Find your user document by email or UID
 5. Edit the document and change the `role` field to `admin` or `superadmin`
