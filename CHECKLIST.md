@@ -76,7 +76,7 @@
   - [x] Icon changes (sun/moon)
   - [x] Text color adapts
 
-- [x] ColorChangerWidget
+- [x] ColorChanger Widget
   - [x] Maintains color index state
   - [x] Cycles through 6 colors
   - [x] Button to change color
