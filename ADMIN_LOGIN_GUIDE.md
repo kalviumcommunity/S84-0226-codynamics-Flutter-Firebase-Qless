@@ -1,6 +1,6 @@
 # Admin/SuperAdmin Login Guide
 
-## Changes Made
+## Changes made
 
 Admin and SuperAdmin roles are now managed exclusively through Firestore. There is no separate admin authentication option in the login screen.
 
