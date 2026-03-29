@@ -53,7 +53,7 @@ The app supports 4 roles:
 ## Troubleshooting
 
 If admin login doesn't work:
-1. Verify the `role` field in Firestore is exactly `admin` or `superadmin` (case-sensitive)
+1. Verify the `role` field in Firestore is exactly `admin` or `superadmin` (Case-Sensitive)
 2. Log out completely and log back in
 3. Check the debug console for role resolution logs (🔍 and ✅ emojis)
 4. Ensure the user document exists in Firestore with the correct UID
