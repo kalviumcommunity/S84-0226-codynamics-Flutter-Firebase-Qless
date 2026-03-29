@@ -62,7 +62,7 @@
   - [x] Demonstrates immutable widget concept
 
 ### Stateful Widgets
-- [x] CounterWidget
+- [x] Counter Widget
   - [x] Maintains count state
   - [x] Increment button
   - [x] Decrement button
