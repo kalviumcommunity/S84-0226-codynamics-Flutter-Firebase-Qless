@@ -17,7 +17,7 @@ Admin and SuperAdmin roles are now managed exclusively through Firestore. There 
 4. Find your user document by email or UID
 5. Edit the document and change the `role` field to `admin` or `superadmin`
 6. Log out of the app and log back in
-7. You'll automatically be routed to the Admin Dashboard
+7. You'll automatically be routed to the Admin dashboard
 
 ### Method 2: Manual Database Entry
 1. Go to Firebase Console → Firestore Database
